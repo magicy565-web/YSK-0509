@@ -1,18 +1,23 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
+// 初始化 AI 客户端
+// 确保 .env.local 里的变量名是 VITE_GEMINI_API_KEY
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+
+// 调试日志：如果控制台打印 Key Missing，请检查 Vercel 环境变量设置
 console.log("Debug Key Status:", apiKey ? `Key Loaded (${apiKey.substring(0, 5)}...)` : "Key Missing"); 
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// 🔴 修改点：使用精确版本号，不要用通用别名
+// 🔴 修改点：强制使用 'gemini-pro' (1.0 版本)
+// 这是最稳定的版本，如果这个还报错，那就一定是 API Key 本身的问题了
 const model = genAI.getGenerativeModel({ 
-    model: "model: "gemini-pro" 
+    model: "gemini-pro" 
 });
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
-  // 1. 模拟延迟
+  // 1. 模拟一点网络延迟体验
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   let prompt = "";
@@ -25,7 +30,8 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
       
       要求：
       1. 返回纯 JSON 格式，不要包含Markdown标记。
-      2. 必须严格符合以下 JSON 结构:
+      2. 数据要真实、商业化。
+      3. 必须严格符合以下 JSON 结构:
       {
         "leads": 215,
         "profit": "$150,000",
@@ -71,14 +77,16 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
   }
 
   try {
+    // 3. 发送给 Google
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
     
-    // 清理 JSON
+    // 4. 清理数据 (Gemini Pro 有时候比较喜欢加 Markdown，所以这一步很重要)
     const cleanJsonStr = text.replace(/```json|```/g, "").trim();
     const jsonData = JSON.parse(cleanJsonStr);
 
+    // 5. 确定下一步
     let nextStep = '';
     if (step === 'init') nextStep = 'analysis';
     if (step === 'start') nextStep = 'strategy';
@@ -91,8 +99,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
 
   } catch (error) {
     console.error("AI Service Error:", error);
-    // 弹窗提示用户更详细的信息
-    alert("AI 连接失败。请检查 API Key 或尝试更换模型名称 (gemini-pro)");
+    alert("AI 连接失败。如果多次重试不行，请检查 API Key 额度或是否过期。");
     throw error;
   }
 };
