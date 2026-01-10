@@ -3,7 +3,9 @@ import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
 // 初始化 AI 客户端
 // 这里的 process.env.GEMINI_API_KEY 会由 Vite 在构建时替换为您 .env.local 里的 Key
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+console.log("Debug Key Status:", apiKey ? "Key Loaded (Length: " + apiKey.length + ")" : "Key Missing"); // 添加调试日志
+const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
