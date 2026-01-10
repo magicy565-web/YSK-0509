@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // 🔴 修改点：使用精确版本号，不要用通用别名
 const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash-001" 
+    model: "model: "gemini-pro" 
 });
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
