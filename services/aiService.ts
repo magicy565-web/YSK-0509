@@ -1,27 +1,23 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
-// 初始化 AI 客户端
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-
-// 调试日志
 console.log("Debug Key Status:", apiKey ? `Key Loaded (${apiKey.substring(0, 5)}...)` : "Key Missing"); 
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// 🔴 修正点：改回标准名称 "gemini-1.5-flash"
-// 因为你的 SDK 已经升级，现在这个名字在 v1beta 下是能正常工作的
+// 🔴 修改点：使用精确版本号，不要用通用别名
 const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash" 
+    model: "gemini-1.5-flash-001" 
 });
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
-  // 1. 模拟一点延迟
+  // 1. 模拟延迟
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   let prompt = "";
 
-  // 2. 构建 Prompt
+  // 2. 根据步骤构建 Prompt
   switch (step) {
     case 'init':
       prompt = `你是一个外贸B2B全托管系统的后端 AI。用户刚上传了一个产品（假设是工业/机械类）。
@@ -29,8 +25,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
       
       要求：
       1. 返回纯 JSON 格式，不要包含Markdown标记。
-      2. 数据要真实、商业化。
-      3. 必须严格符合以下 JSON 结构:
+      2. 必须严格符合以下 JSON 结构:
       {
         "leads": 215,
         "profit": "$150,000",
@@ -44,8 +39,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
       
       要求：
       1. 返回纯 JSON 格式，不要包含Markdown标记。
-      2. 策略要激进。
-      3. 必须严格符合以下 JSON 结构:
+      2. 必须严格符合以下 JSON 结构:
       {
         "tactic": "竞品低价截胡策略",
         "subject": "Re: 您的供应链成本优化方案 (降低 15%)",
@@ -77,16 +71,14 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
   }
 
   try {
-    // 3. 发送给 Google
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
     
-    // 4. 清理数据
+    // 清理 JSON
     const cleanJsonStr = text.replace(/```json|```/g, "").trim();
     const jsonData = JSON.parse(cleanJsonStr);
 
-    // 5. 确定下一步
     let nextStep = '';
     if (step === 'init') nextStep = 'analysis';
     if (step === 'start') nextStep = 'strategy';
@@ -99,7 +91,8 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
 
   } catch (error) {
     console.error("AI Service Error:", error);
-    alert("AI 连接失败。请按 F12 查看 Console 报错信息。");
+    // 弹窗提示用户更详细的信息
+    alert("AI 连接失败。请检查 API Key 或尝试更换模型名称 (gemini-pro)");
     throw error;
   }
 };
