@@ -1,20 +1,22 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
-// 1. 读取 Key (你刚才填的 sk- 开头的那个)
+// 1. 读取 .env.local 里的 Key
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 console.log("Debug Key Status:", apiKey ? `Key Loaded (${apiKey.substring(0, 5)}...)` : "Key Missing"); 
 
+// 2. 初始化 SDK
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// 🔴 关键修改：配置第三方中转地址 (Base URL)
-// 因为你的 Key 是 sk- 开头的，必须告诉 SDK 去找 NovAI 的服务器，而不是 Google 官方
+// 🔴 关键修改：添加 customHeaders 适配第三方中转商
 const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash" // 或者 "gemini-pro"
+    model: "gemini-1.5-flash", // 你购买的中转服务通常支持这个最新模型
 }, {
-    // 👇 这里指定商家的代理地址
-    // 这里的地址是根据 NovAI 的常用配置推测的，通常是这个域名
-    baseUrl: "https://once-cf.novai.su" 
+    baseUrl: "https://once-cf.novai.su", // 中转地址
+    customHeaders: {
+        // 👇 强制把 Key 放入 Authorization 头，适配 sk- 开头的 Key
+        'Authorization': `Bearer ${apiKey}`
+    }
 });
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
@@ -23,7 +25,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
 
   let prompt = "";
 
-  // ... (中间的 switch case 逻辑完全不变，省略以节省空间) ...
+  // ... (switch case 逻辑保持不变) ...
   switch (step) {
     case 'init':
       prompt = `你是一个外贸B2B全托管系统的后端 AI。用户刚上传了一个产品（假设是工业/机械类）。
@@ -77,7 +79,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
   }
 
   try {
-    // 发送请求 (现在会发给 NovAI 而不是 Google)
+    // 发送请求
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
@@ -97,7 +99,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
 
   } catch (error) {
     console.error("AI Service Error:", error);
-    alert("连接第三方 API 失败。请按 F12 检查 Network 请求，确认 BaseUrl 是否正确。");
+    alert("AI 服务连接失败 (401)。请检查控制台 Network 面板，确认 Key 是否正确发送。");
     throw error;
   }
 };
