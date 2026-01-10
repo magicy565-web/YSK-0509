@@ -1,16 +1,12 @@
 import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
-// ✅ 继续保留硬编码 Key，先跑通再说
-const apiKey = "sk-LycDc2maWsAZfEvH59T06iRIFlToKfnhHdWeJLtu7cSN1mhP";
-
-// 中转地址
-const BASE_URL = "https://once-cf.novai.su/v1/chat/completions";
-
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
+  // 模拟思考延迟
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   let prompt = "";
-  // ... (Switch 逻辑保持不变) ...
+  
+  // --- Prompt 生成逻辑 (保持不变) ---
   switch (step) {
     case 'init':
       prompt = `你是一个外贸B2B全托管系统的后端 AI。请分析产品的北美市场潜力。要求返回纯 JSON 格式：{"leads": 215, "profit": "$150,000", "market": "北美", "topKeywords": ["Steel", "Heavy Duty"]}`;
@@ -26,35 +22,26 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
   }
 
   try {
-    console.log("【Debug】Request Model: [vertex]gemini-3-pro-preview");
+    console.log("【Debug】Calling local proxy...");
     
-    const response = await fetch(BASE_URL, {
+    // 🔴 关键修改：请求我们刚创建的 Vercel 代理接口
+    // 浏览器 -> /api/proxy -> NovAI
+    const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}` 
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            // 🔴 关键修改：使用你看到的那个特殊模型名
-            model: "[vertex]gemini-3-pro-preview", 
-            messages: [
-                { role: "user", content: prompt }
-            ],
-            temperature: 0.7
+            prompt: prompt,
+            // 既然 NovAI 的 gemini 可能缺货，我们暂时用 vertex 版本或 gpt-4o-mini 保底
+            model: "[vertex]gemini-3-pro-preview" 
         })
     });
 
     if (!response.ok) {
-        const errorText = await response.text();
-        console.error("【API Error 详情】:", errorText);
-        
-        let errorMsg = errorText;
-        try {
-            const errJson = JSON.parse(errorText);
-            errorMsg = errJson.error?.message || errorText;
-        } catch(e) {}
-
-        throw new Error(`API请求失败 (${response.status}): ${errorMsg}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error("【Proxy Error】:", errorData);
+        throw new Error(`API请求失败: ${errorData.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
@@ -67,9 +54,10 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
     try {
         jsonData = JSON.parse(cleanJsonStr);
     } catch (e) {
-        console.error("JSON Parse Error:", text);
-        jsonData = { error: "AI返回格式错误", raw: text };
-        if(step === 'init') jsonData = { leads: 0, profit: "Error", market: "Error", topKeywords: [] };
+        // 如果 AI 返回的不是完美 JSON，给一个兜底数据防止页面白屏
+        console.error("JSON Parse Error, using fallback.");
+        if(step === 'start') jsonData = { tactic: "AI Strategy (Fallback)", subject: "Offer", emailBody: text, channels: ["Email"] };
+        else jsonData = { error: "Format Error" };
     }
 
     let nextStep = '';
