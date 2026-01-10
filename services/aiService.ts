@@ -2,11 +2,19 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
 // 初始化 AI 客户端
-// 这里的 process.env.GEMINI_API_KEY 会由 Vite 在构建时替换为您 .env.local 里的 Key
+// 注意：Vite 要求环境变量必须以 VITE_ 开头才能在前端代码中访问
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-console.log("Debug Key Status:", apiKey ? "Key Loaded (Length: " + apiKey.length + ")" : "Key Missing"); // 添加调试日志
+
+// 调试日志：部署后按 F12 如果看到 Key Missing，说明 .env.local 配置不对
+console.log("Debug Key Status:", apiKey ? `Key Loaded (${apiKey.substring(0, 5)}...)` : "Key Missing"); 
+
 const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+// 修改点：使用具体版本号 'gemini-1.5-flash-latest' 以避免 404 错误
+// 如果仍然报错，可以尝试改为 'gemini-pro' (1.0版本，最稳定)
+const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-flash-latest" 
+});
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
   // 1. 模拟一点延迟，让用户觉得 AI 在思考
