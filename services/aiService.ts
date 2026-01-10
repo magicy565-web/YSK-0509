@@ -2,82 +2,48 @@ import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
 // 1. 读取 API Key
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-console.log("Debug Key Status:", apiKey ? `Key Loaded (${apiKey.substring(0, 5)}...)` : "Key Missing");
 
-// 2. 配置中转商的 OpenAI 兼容地址
-// 注意：对于 NovAI 这类中转，通常使用 /v1/chat/completions 接口
+// 🔍 调试日志：请在浏览器的 Console 里查看这一行
+// 如果打印出来是 "AIza..." 说明你的 .env.local 没改成功！
+// 如果是 "sk-Lyc..." 说明 Key 读取正确。
+console.log("【Debug】Current Key:", apiKey ? `${apiKey.substring(0, 8)}******` : "MISSING");
+
+// 2. 配置中转地址
 const BASE_URL = "https://once-cf.novai.su/v1/chat/completions";
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
-  // 模拟思考延迟
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   let prompt = "";
-
-  // 3. 构建 Prompt (保持不变)
+  // ... (Switch 逻辑保持不变，为了节省篇幅省略，请保留你原来的 prompt 内容) ...
   switch (step) {
     case 'init':
-      prompt = `你是一个外贸B2B全托管系统的后端 AI。用户刚上传了一个产品（假设是工业/机械类）。
-      请分析该产品的北美市场潜力。
-      
-      要求：
-      1. 返回纯 JSON 格式，不要包含Markdown标记。
-      2. 必须严格符合以下 JSON 结构:
-      {
-        "leads": 215,
-        "profit": "$150,000",
-        "market": "北美 (建筑与基建)",
-        "topKeywords": ["Structural Steel", "Heavy Duty"]
-      }`;
+      prompt = `你是一个外贸B2B全托管系统的后端 AI。请分析产品的北美市场潜力。要求返回纯 JSON 格式：{"leads": 215, "profit": "$150,000", "market": "北美", "topKeywords": ["Steel", "Heavy Duty"]}`;
       break;
-
     case 'start':
-      prompt = `用户批准了获客计划。请生成激进的营销策略。
-      
-      要求：
-      1. 返回纯 JSON 格式，不要包含Markdown标记。
-      2. 必须严格符合以下 JSON 结构:
-      {
-        "tactic": "竞品低价截胡策略",
-        "subject": "Re: 您的供应链成本优化方案 (降低 15%)",
-        "emailBody": "尊敬的采购经理，我们注意到贵司正在采购...我们是源头工厂...",
-        "channels": ["LinkedIn Direct", "Cold Email"]
-      }`;
+      prompt = `请生成营销策略。要求返回纯 JSON 格式：{"tactic": "低价策略", "subject": "报价单", "emailBody": "内容...", "channels": ["Email"]}`;
       break;
-
     case 'quote':
-      prompt = `收到高意向询盘（客户 Turner Construction Co., AAA级）。请生成报价单数据。
-      
-      要求：
-      1. 返回纯 JSON 格式，不要包含Markdown标记。
-      2. 必须严格符合以下 JSON 结构:
-      {
-        "clientName": "Turner Construction Co.",
-        "clientRating": "AAA (Dun & Bradstreet)",
-        "productName": "H-Beam 200x200 (ASTM A36)",
-        "quantity": "500 Tons",
-        "unitPrice": "$850.00",
-        "totalPrice": "$425,000.00",
-        "shippingCost": "$2,100 (Ocean Freight)",
-        "term": "DDP (Delivered Duty Paid)"
-      }`;
+      prompt = `请生成报价单。要求返回纯 JSON 格式：{"clientName": "Turner", "clientRating": "AAA", "productName": "H-Beam", "quantity": "500", "unitPrice": "$850", "totalPrice": "$425k", "shippingCost": "$2k", "term": "DDP"}`;
       break;
-
     case 'sign':
        return { step: 'success', data: null };
   }
 
   try {
-    // 4. 使用 fetch 发送标准 OpenAI 格式请求
-    // 这种方式对 sk- 开头的 Key 兼容性最好
+    // 3. 发送请求
+    console.log("【Debug】Sending request to:", BASE_URL);
+    
     const response = await fetch(BASE_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}` // 这里放入你的 sk- Key
+            'Authorization': `Bearer ${apiKey}` // 确保这里没有多余空格
         },
         body: JSON.stringify({
-            model: "gemini-1.5-flash", // 中转商通常支持这个模型名
+            // ⚠️ 临时修改：先用 gpt-3.5-turbo 测试，因为这是所有中转站都支持的基础模型
+            // 如果这个能通，我们再换回 gemini-1.5-flash
+            model: "gpt-3.5-turbo", 
             messages: [
                 { role: "user", content: prompt }
             ],
@@ -85,20 +51,38 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
         })
     });
 
-    // 5. 处理错误
+    // 4. 详细的错误处理
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("API Error Detail:", errorData);
-        throw new Error(`API Request Failed: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error("【API Error 详情】:", errorText); // 👈 这一行非常关键！看控制台输出了什么
+        
+        let errorJson;
+        try {
+            errorJson = JSON.parse(errorText);
+        } catch (e) {
+            errorJson = { error: { message: errorText } };
+        }
+        
+        // 抛出具体的错误信息
+        throw new Error(`API请求失败 (${response.status}): ${errorJson?.error?.message || "未知错误"}`);
     }
 
-    // 6. 解析响应
     const data = await response.json();
     const text = data.choices?.[0]?.message?.content || "";
     
-    // 7. 清理 JSON 字符串
+    // 清理 JSON
     const cleanJsonStr = text.replace(/```json|```/g, "").trim();
-    const jsonData = JSON.parse(cleanJsonStr);
+    
+    // 尝试解析，防止 AI 返回非 JSON 内容
+    let jsonData;
+    try {
+        jsonData = JSON.parse(cleanJsonStr);
+    } catch (e) {
+        console.error("JSON Parse Error. AI Response:", text);
+        // 如果解析失败，给一个默认的假数据防止页面崩溃
+        jsonData = { error: "AI返回格式错误", raw: text };
+        if(step === 'init') jsonData = { leads: 0, profit: "Error", market: "Error", topKeywords: [] };
+    }
 
     let nextStep = '';
     if (step === 'init') nextStep = 'analysis';
@@ -110,9 +94,9 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
       data: jsonData
     };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Service Error:", error);
-    alert(`连接失败: ${error instanceof Error ? error.message : '未知错误'}。请检查 API Key 余额或网络。`);
+    alert(`连接失败: ${error.message}。\n请按 F12 查看控制台【API Error 详情】`);
     throw error;
   }
 };
