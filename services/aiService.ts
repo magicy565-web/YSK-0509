@@ -1,6 +1,6 @@
 import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
-// ✅ 这里的 Key 已经验证通过了，暂时保留硬编码，确保先跑通
+// ✅ 继续保留硬编码 Key，先跑通再说
 const apiKey = "sk-LycDc2maWsAZfEvH59T06iRIFlToKfnhHdWeJLtu7cSN1mhP";
 
 // 中转地址
@@ -26,7 +26,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
   }
 
   try {
-    console.log("【Debug】Request Model: gemini-1.5-flash");
+    console.log("【Debug】Request Model: [vertex]gemini-3-pro-preview");
     
     const response = await fetch(BASE_URL, {
         method: 'POST',
@@ -35,9 +35,8 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
             'Authorization': `Bearer ${apiKey}` 
         },
         body: JSON.stringify({
-            // 🔴 关键修改：改回 Gemini 模型
-            // 如果这个也报 "无可用渠道"，请尝试改成 "gemini-pro"
-            model: "gemini-1.5-flash", 
+            // 🔴 关键修改：使用你看到的那个特殊模型名
+            model: "[vertex]gemini-3-pro-preview", 
             messages: [
                 { role: "user", content: prompt }
             ],
@@ -49,7 +48,6 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
         const errorText = await response.text();
         console.error("【API Error 详情】:", errorText);
         
-        // 尝试解析错误信息
         let errorMsg = errorText;
         try {
             const errJson = JSON.parse(errorText);
@@ -70,7 +68,6 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
         jsonData = JSON.parse(cleanJsonStr);
     } catch (e) {
         console.error("JSON Parse Error:", text);
-        // 容错处理
         jsonData = { error: "AI返回格式错误", raw: text };
         if(step === 'init') jsonData = { leads: 0, profit: "Error", market: "Error", topKeywords: [] };
     }
