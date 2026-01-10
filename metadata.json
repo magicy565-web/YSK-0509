@@ -1,0 +1,5 @@
+{
+  "name": "Export Auto-Pilot",
+  "description": "A fully managed SaaS system for automated export operations with critical human-in-the-loop decision nodes.",
+  "requestFramePermissions": []
+}
