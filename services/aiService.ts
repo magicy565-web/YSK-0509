@@ -1,23 +1,12 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
 
-// 1. 读取 .env.local 里的 Key
+// 1. 读取 API Key
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-console.log("Debug Key Status:", apiKey ? `Key Loaded (${apiKey.substring(0, 5)}...)` : "Key Missing"); 
+console.log("Debug Key Status:", apiKey ? `Key Loaded (${apiKey.substring(0, 5)}...)` : "Key Missing");
 
-// 2. 初始化 SDK
-const genAI = new GoogleGenerativeAI(apiKey);
-
-// 🔴 关键修改：添加 customHeaders 适配第三方中转商
-const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash", // 你购买的中转服务通常支持这个最新模型
-}, {
-    baseUrl: "https://once-cf.novai.su", // 中转地址
-    customHeaders: {
-        // 👇 强制把 Key 放入 Authorization 头，适配 sk- 开头的 Key
-        'Authorization': `Bearer ${apiKey}`
-    }
-});
+// 2. 配置中转商的 OpenAI 兼容地址
+// 注意：对于 NovAI 这类中转，通常使用 /v1/chat/completions 接口
+const BASE_URL = "https://once-cf.novai.su/v1/chat/completions";
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
   // 模拟思考延迟
@@ -25,7 +14,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
 
   let prompt = "";
 
-  // ... (switch case 逻辑保持不变) ...
+  // 3. 构建 Prompt (保持不变)
   switch (step) {
     case 'init':
       prompt = `你是一个外贸B2B全托管系统的后端 AI。用户刚上传了一个产品（假设是工业/机械类）。
@@ -79,11 +68,35 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
   }
 
   try {
-    // 发送请求
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+    // 4. 使用 fetch 发送标准 OpenAI 格式请求
+    // 这种方式对 sk- 开头的 Key 兼容性最好
+    const response = await fetch(BASE_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}` // 这里放入你的 sk- Key
+        },
+        body: JSON.stringify({
+            model: "gemini-1.5-flash", // 中转商通常支持这个模型名
+            messages: [
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.7
+        })
+    });
+
+    // 5. 处理错误
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("API Error Detail:", errorData);
+        throw new Error(`API Request Failed: ${response.status} ${response.statusText}`);
+    }
+
+    // 6. 解析响应
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || "";
     
+    // 7. 清理 JSON 字符串
     const cleanJsonStr = text.replace(/```json|```/g, "").trim();
     const jsonData = JSON.parse(cleanJsonStr);
 
@@ -99,7 +112,7 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): 
 
   } catch (error) {
     console.error("AI Service Error:", error);
-    alert("AI 服务连接失败 (401)。请检查控制台 Network 面板，确认 Key 是否正确发送。");
+    alert(`连接失败: ${error instanceof Error ? error.message : '未知错误'}。请检查 API Key 余额或网络。`);
     throw error;
   }
 };
