@@ -6,7 +6,7 @@ import { StateStrategy } from './components/StateStrategy';
 import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
-import { performAction } from './services/mockApi';
+import { performAction } from './services/aiService';
 import { AppState, AnalysisData, StrategyData, DealData } from './types';
 
 function App() {
