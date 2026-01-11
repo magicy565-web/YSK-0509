@@ -24,10 +24,9 @@ export interface NicheMarket {
 export interface Competitor {
   name: string;
   website: string;
-  advantages: string[]; // Key advantages of the competitor
+  advantages: string[]; 
 }
 
-// Redefined AnalysisData to match the new structure
 export interface AnalysisData {
   potentialBuyers: {
     total: number;
@@ -38,12 +37,17 @@ export interface AnalysisData {
   b2bStrategies: string[];
 }
 
-export interface StrategyData {
-  tactic: string;
+// 4. 营销策略
+export interface StrategyOption {
+  id: string;
+  title: string;
+  description: string;
   subject: string;
   emailBody: string;
-  channels: string[];
 }
+
+export type StrategyData = StrategyOption[];
+
 
 export interface DealData {
   clientName: string;

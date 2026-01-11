@@ -8,7 +8,7 @@ import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
 import { performAction } from './services/aiService';
-import { AppState, AnalysisData, StrategyData, DealData, InfoFormData } from './types';
+import { AppState, AnalysisData, StrategyData, DealData, InfoFormData, StrategyOption } from './types';
 
 function App() {
   const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
@@ -54,9 +54,11 @@ function App() {
     }
   };
 
-  const handleSendStrategy = async () => {
+  const handleStrategyApproved = async (selectedStrategy: StrategyOption) => {
     setIsLoading(true);
     setLoadingMessage('Sending emails & waiting for responses...');
+    
+    console.log("Strategy Approved:", selectedStrategy);
 
     try {
       const response = await performAction('quote');
@@ -116,7 +118,7 @@ function App() {
         )}
 
         {currentState === AppState.STRATEGY && strategyData && (
-          <StateStrategy data={strategyData} onSend={handleSendStrategy} />
+          <StateStrategy data={strategyData} onApprove={handleStrategyApproved} />
         )}
 
         {currentState === AppState.DEAL && dealData && (
