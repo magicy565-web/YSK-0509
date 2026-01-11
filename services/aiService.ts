@@ -1,18 +1,10 @@
-import { AnalysisData, StrategyData, DealData, ApiResponse, InfoFormData } from '../types';
+import { AnalysisData, StrategyData, DealData, ApiResponse, InfoFormData, PotentialBuyer } from '../types';
 
 const PROMPTS = {
   init: (productName: string, targetCountry: string) => 
     `你是一个外贸B2B全托管系统的后端 AI。请为产品 \"${productName}\" 分析在 \"${targetCountry}\" 市场的潜力。
-    重要提示：在潜在采购商名录 (potentialBuyers) 中, 请专注于识别独立的、中小型采购商或分销商，避免那些大型的、审核严格的头部公司。这些线索对于小型工厂来说应该是切实可行的。
     请返回纯 JSON 格式, 结构如下: 
     {
-      "potentialBuyers": {
-        "total": 150, 
-        "top10": [
-          {"name": "Independent Buyer A", "address": "123 Main St, Anytown, USA", "contact": "purchase@buyer-a.com"},
-          {"name": "Regional Distributor B", "address": "456 Oak Ave, Sometown, USA", "contact": "sourcing@distributor-b.net"}
-        ]
-      },
       "nicheMarkets": [
         {"name": "Niche 1", "volume": "$5M"},
         {"name": "Niche 2", "volume": "$3M"}
@@ -32,24 +24,105 @@ const PROMPTS = {
       "title": "策略1：OEM工厂通用策略",
       "description": "介绍工厂，产品，经营范围和资质许可等常规外贸通用熟悉。",
       "subject": "【询盘】来自[你的公司名]的优质[产品名]供应",
-      "emailBody": "尊敬的采购经理，\n\n我们是来自中国的[你的公司名]，一家专业的OEM/ODM工厂...（此处省略详细介绍）"
+      "emailBody": "尊敬的采购经理，\\n\\n我们是来自中国的[你的公司名]，一家专业的OEM/ODM工厂...（此处省略详细介绍）"
     },
     {
       "id": "strategy-2",
       "title": "策略2：免费样品策略",
       "description": "以提供免费样品为策略，主要围绕产品的介绍。",
       "subject": "免费样品 | 体验我们的高质量[产品名]",
-      "emailBody": "尊敬的[客户公司名]，\n\n您是否正在寻找可靠的[产品名]供应商？我们愿意提供免费样品...（此处省略详细介绍）"
+      "emailBody": "尊敬的[客户公司名]，\\n\\n您是否正在寻找可靠的[产品名]供应商？我们愿意提供免费样品...（此处省略详细介绍）"
     },
     {
       "id": "strategy-3",
       "title": "策略3：服务与折扣策略",
       "description": "以服务和折扣的吸引策略，适用于贸易商的开发信。",
       "subject": "合作共赢 | [你的公司名]为您提供专属折扣与增值服务",
-      "emailBody": "尊敬的合作伙伴，\n\n作为一家领先的贸易商，您一定在寻找能提供稳定利润空间和可靠服务的供应商...（此处省略详细介绍）"
+      "emailBody": "尊敬的合作伙伴，\\n\\n作为一家领先的贸易商，您一定在寻找能提供稳定利润空间和可靠服务的供应商...（此处省略详细介绍）"
     }
   ]`,
-  quote: `请生成报价单。要求返回纯 JSON 格式：{\"clientName\": \"Turner\", \"clientRating\": \"AAA\", \"productName\": \"H-Beam\", \"quantity\": \"500\", \"unitPrice\": \"$850\", \"totalPrice\": \"$425k\", \"shippingCost\": \"$2k\", \"term\": \"DDP\"}`,
+  quote: `你是一个外贸B2B全托管系统的后端 AI。请根据以下信息生成一份报价单。
+    产品: H-Beam
+    客户: Turner Inc.
+
+    要求返回纯 JSON 格式, 结构如下:
+    {
+      "clientName": "Turner Inc.",
+      "clientRating": "AAA",
+      "productName": "H-Beam",
+      "quantity": "500 MT",
+      "unitPrice": "$850",
+      "totalPrice": "$425,000",
+      "shippingCost": "$2,000",
+      "term": "DDP (Delivered Duty Paid)"
+    }`,
+};
+
+// Mock data simulating a database fetch
+const mockPotentialBuyers: { total: number; top10: PotentialBuyer[] } = {
+  total: 68,
+  top10: [
+    {
+      id: 'buyer-001',
+      avatarUrl: 'https://i.pravatar.cc/150?u=buyer001',
+      name: 'Global Construction Supplies',
+      joinDate: '2022-08-15',
+      industry: 'Construction & Building Materials',
+      businessModel: 'Wholesale Distributor',
+      historicalInquiries: 12,
+      intendedProducts: ['H-Beam Steel', 'Rebar', 'Structural Tubing'],
+      location: 'Houston, TX, USA',
+      website: 'www.globalconstructionsupplies.com'
+    },
+    {
+      id: 'buyer-002',
+      avatarUrl: 'https://i.pravatar.cc/150?u=buyer002',
+      name: 'Euro Steel Traders B.V.',
+      joinDate: '2021-03-20',
+      industry: 'Industrial Manufacturing',
+      businessModel: 'Importer/Agent',
+      historicalInquiries: 8,
+      intendedProducts: ['Steel Coils', 'Sheet Metal', 'Pipes'],
+      location: 'Rotterdam, Netherlands',
+      website: 'www.eurosteeltraders.com'
+    },
+    {
+      id: 'buyer-003',
+      avatarUrl: 'https://i.pravatar.cc/150?u=buyer003',
+      name: 'Southeast Asia Metal Co.',
+      joinDate: '2023-01-10',
+      industry: 'Metal Fabrication',
+      businessModel: 'Direct Importer',
+      historicalInquiries: 5,
+      intendedProducts: ['H-Beam Steel', 'Angle Iron'],
+      location: 'Singapore',
+      website: 'www.seametals.com.sg'
+    },
+    {
+      id: 'buyer-004',
+      avatarUrl: 'https://i.pravatar.cc/150?u=buyer004',
+      name: 'Canada Infrastructure Inc.',
+      joinDate: '2020-11-05',
+      industry: 'Infrastructure Development',
+      businessModel: 'Project Contractor',
+      historicalInquiries: 15,
+      intendedProducts: ['Structural Steel', 'Guard Rails'],
+      location: 'Toronto, ON, Canada',
+      website: 'www.canadainfrastructure.ca'
+    },
+     {
+      id: 'buyer-005',
+      avatarUrl: 'https://i.pravatar.cc/150?u=buyer005',
+      name: 'AUS Steel Solutions',
+      joinDate: '2022-06-21',
+      industry: 'Mining & Resources',
+      businessModel: 'Equipment Supplier',
+      historicalInquiries: 7,
+      intendedProducts: ['Heavy-duty Steel Beams', 'Plate Steel'],
+      location: 'Perth, WA, Australia',
+      website: 'www.aussteelsolutions.com.au'
+    },
+  ]
 };
 
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign', formData?: InfoFormData): Promise<ApiResponse> => {
@@ -98,23 +171,28 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign', f
         jsonData = JSON.parse(cleanJsonStr);
     } catch (e) {
         console.error("JSON Parse Error, using fallback.");
-        jsonData = {
-          potentialBuyers: { total: 0, top10: [] },
-          nicheMarkets: [],
-          topCompetitors: [],
-          b2bStrategies: [],
-          error: "Format Error"
-        };
+        jsonData = step === 'init' 
+            ? { nicheMarkets: [], topCompetitors: [], b2bStrategies: [], error: "Format Error" }
+            : [];
     }
 
     let nextStep = '';
-    if (step === 'init') nextStep = 'analysis';
+    let finalData: AnalysisData | StrategyData | DealData | null = jsonData;
+
+    if (step === 'init') {
+      nextStep = 'analysis';
+      // Combine AI results with mock buyer data
+      finalData = {
+        ...jsonData,
+        potentialBuyers: mockPotentialBuyers,
+      };
+    }
     if (step === 'start') nextStep = 'strategy';
     if (step === 'quote') nextStep = 'deal';
 
     return {
       step: nextStep,
-      data: jsonData
+      data: finalData
     };
 
   } catch (error: any) {
