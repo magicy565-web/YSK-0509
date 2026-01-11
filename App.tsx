@@ -7,9 +7,8 @@ import { StateStrategy } from './components/StateStrategy';
 import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
-import { performAction } from './services/aiService';
+import { aiService } from './services/aiService'; // Corrected import
 import { AppState, AnalysisData, StrategyData, DealData, InfoFormData, StrategyOption } from './types';
-import { seedDatabase } from './services/buyerService'; // Import the seed function
 
 function App() {
   const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
@@ -17,6 +16,7 @@ function App() {
   const [loadingMessage, setLoadingMessage] = useState('');
   
   // Data holders
+  const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null); // To hold form data across steps
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [strategyData, setStrategyData] = useState<StrategyData | null>(null);
   const [dealData, setDealData] = useState<DealData | null>(null);
@@ -24,26 +24,42 @@ function App() {
   const handleFormSubmit = async (formData: InfoFormData) => {
     setIsLoading(true);
     setLoadingMessage('AI is scanning global market demand...');
+    setInfoFormData(formData); // Save form data for later steps
     
     try {
-      const response = await performAction('init', formData);
+      // Call the new aiService with the 'analysis' step
+      const response = await aiService('analysis', formData);
       if (response.data) {
-        setAnalysisData(response.data as AnalysisData);
-        setCurrentState(AppState.ANALYSIS);
+        const data = response.data as AnalysisData;
+        if (data.error) {
+            // If the AI service returns a specific error, show it and stop.
+            alert(data.error);
+            setCurrentState(AppState.FORM); // Stay on the form page
+        } else {
+            setAnalysisData(data);
+            setCurrentState(AppState.ANALYSIS);
+        }
       }
     } catch (error) {
       console.error(error);
+      alert(`An unexpected error occurred: ${error}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleApproveAnalysis = async () => {
+    if (!infoFormData || !analysisData) {
+      alert('Error: Missing form or analysis data.');
+      return;
+    }
+
     setIsLoading(true);
     setLoadingMessage('Generating outreach strategy & copywriting...');
 
     try {
-      const response = await performAction('start');
+      // Call the new aiService with the 'strategy' step
+      const response = await aiService('strategy', infoFormData, analysisData);
       if (response.data) {
         setStrategyData(response.data as StrategyData);
         setCurrentState(AppState.STRATEGY);
@@ -56,13 +72,17 @@ function App() {
   };
 
   const handleStrategyApproved = async (selectedStrategy: StrategyOption) => {
+    if (!infoFormData || !analysisData || !strategyData) {
+      alert('Error: Missing data for deal generation.');
+      return;
+    }
+    
     setIsLoading(true);
     setLoadingMessage('Sending emails & waiting for responses...');
-    
-    console.log("Strategy Approved:", selectedStrategy);
 
     try {
-      const response = await performAction('quote');
+       // Call the new aiService with the 'deal' step
+      const response = await aiService('deal', infoFormData, analysisData, strategyData);
       if (response.data) {
         setDealData(response.data as DealData);
         setCurrentState(AppState.DEAL);
@@ -78,14 +98,11 @@ function App() {
       setIsLoading(true);
       setLoadingMessage('Generating contracts & shipping docs...');
       
-      try {
-          await performAction('sign');
-          setCurrentState(AppState.SUCCESS);
-      } catch (error) {
-          console.error(error);
-      } finally {
-          setIsLoading(false);
-      }
+      // Simulate final step without a backend call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      setIsLoading(false);
+      setCurrentState(AppState.SUCCESS);
   }
 
   return (
@@ -93,17 +110,8 @@ function App() {
       <Navbar currentState={currentState} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        {/* Temporary button for seeding the database */}
-        <div className="text-center mb-4">
-          <button 
-            onClick={seedDatabase} 
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Seed Database (Dev Only)
-          </button>
-        </div>
-
-        {/* Progress Stepper (Simple Visual) */}
+        
+        {/* Progress Stepper */}
         {currentState !== AppState.SUCCESS && (
             <div className="mb-8 hidden sm:flex items-center justify-center space-x-4 text-xs font-semibold tracking-wider text-slate-400">
             <span className={currentState === AppState.FORM ? 'text-slate-900' : 'text-emerald-600'}>1. UPLOAD</span>
