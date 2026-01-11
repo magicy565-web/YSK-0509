@@ -9,10 +9,22 @@ import { SuccessState } from './components/SuccessState';
 import { aiService } from './services/aiService';
 import { AppState, AnalysisData, StrategyData, DealData, InfoFormData, StrategyOption } from './types';
 
+// A simple, local component to display errors.
+const ErrorDisplay = ({ message, onClose }: { message: string, onClose: () => void }) => (
+  <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+    <strong className="font-bold">发生错误! </strong>
+    <span className="block sm:inline">{message}</span>
+    <span className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={onClose}>
+      <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+    </span>
+  </div>
+);
+
 function App() {
   const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [error, setError] = useState<string | null>(null); // New state for error handling
   
   // Data holders
   const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null);
@@ -24,6 +36,7 @@ function App() {
     setIsLoading(true);
     setLoadingMessage('AI正在扫描全球市场需求...');
     setInfoFormData(formData);
+    setError(null);
     
     try {
       const response = await aiService('analysis', formData);
@@ -31,9 +44,9 @@ function App() {
         setAnalysisData(response.data as AnalysisData);
         setCurrentState(AppState.ANALYSIS);
       }
-    } catch (error) {
-      console.error(error);
-      alert(`出现意外错误: ${error}`);
+    } catch (err: any) {
+      console.error(err);
+      setError(`AI市场分析失败: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -44,6 +57,7 @@ function App() {
 
     setIsLoading(true);
     setLoadingMessage('正在生成开发策略与开发信...');
+    setError(null);
 
     try {
       const response = await aiService('strategy', infoFormData, analysisData);
@@ -51,8 +65,9 @@ function App() {
         setStrategyData(response.data as StrategyData);
         setCurrentState(AppState.STRATEGY);
       }
-    } catch (error) {
-        console.error(error);
+    } catch (err: any) {
+        console.error(err);
+        setError(`生成开发策略失败: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -63,30 +78,31 @@ function App() {
     
     setIsLoading(true);
     setLoadingMessage('正在准备委托工作区...');
+    setError(null);
 
     try {
-      const response = await aiService('deal', infoFormData, analysisData || undefined, strategyData || undefined);
+      // Corrected: The 'deal' step in aiService only requires formData.
+      const response = await aiService('deal', infoFormData);
       if (response.data) {
         setDealData(response.data as DealData);
         setCurrentState(AppState.DEAL);
       }
-    } catch (error) {
-        console.error(error);
+    } catch (err: any) {
+        console.error(err);
+        setError(`创建委托失败: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- UPDATED FOR STEP 4 ---
   const handleApproveDeal = async (finalDealData: DealData) => {
-      setDealData(finalDealData); // Save the final data
+      setDealData(finalDealData);
       setIsLoading(true);
       setLoadingMessage('正在提交您的委托...');
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate submission
+      await new Promise(resolve => setTimeout(resolve, 1500));
       setIsLoading(false);
       setCurrentState(AppState.SUCCESS);
   }
-  // --- END OF UPDATE ---
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-12">
@@ -94,16 +110,18 @@ function App() {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         
-        {/* Progress Stepper - UPDATED FOR STEP 4 */}
+        {/* Display error if it exists */}
+        {error && <ErrorDisplay message={error} onClose={() => setError(null)} />}
+
         {currentState !== AppState.SUCCESS && (
             <div className="mb-8 hidden sm:flex items-center justify-center space-x-4 text-xs font-semibold tracking-wider text-slate-400">
-            <span className={currentState === AppState.FORM ? 'text-slate-900' : 'text-emerald-600'}>1. 提交产品</span>
-            <span className="w-8 h-px bg-slate-200"></span>
-            <span className={currentState === AppState.ANALYSIS ? 'text-slate-900' : currentState === AppState.STRATEGY || currentState === AppState.DEAL ? 'text-emerald-600' : ''}>2. 市场分析</span>
-            <span className="w-8 h-px bg-slate-200"></span>
-            <span className={currentState === AppState.STRATEGY ? 'text-slate-900' : currentState === AppState.DEAL ? 'text-emerald-600' : ''}>3. 开发策略</span>
-            <span className="w-8 h-px bg-slate-200"></span>
-            <span className={currentState === AppState.DEAL ? 'text-slate-900' : ''}>4. 委托开发</span>
+              <span className={currentState === AppState.FORM ? 'text-slate-900' : 'text-emerald-600'}>1. 提交产品</span>
+              <span className="w-8 h-px bg-slate-200"></span>
+              <span className={currentState === AppState.ANALYSIS ? 'text-slate-900' : currentState === AppState.STRATEGY || currentState === AppState.DEAL ? 'text-emerald-600' : ''}>2. 市场分析</span>
+              <span className="w-8 h-px bg-slate-200"></span>
+              <span className={currentState === AppState.STRATEGY ? 'text-slate-900' : currentState === AppState.DEAL ? 'text-emerald-600' : ''}>3. 开发策略</span>
+              <span className="w-8 h-px bg-slate-200"></span>
+              <span className={currentState === AppState.DEAL ? 'text-slate-900' : ''}>4. 委托开发</span>
             </div>
         )}
 
@@ -119,7 +137,6 @@ function App() {
           <StateStrategy data={strategyData} onApprove={handleStrategyApproved} />
         )}
 
-        {/* UPDATED FOR STEP 4 */}
         {currentState === AppState.DEAL && dealData && (
           <StateDeal data={dealData} onApprove={handleApproveDeal} />
         )}

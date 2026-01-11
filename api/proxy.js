@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: model || "gemini-1.5-flash",
+        model: model || "gemini-3-pro-preview",
         messages: [
            { role: "user", content: prompt }
         ],

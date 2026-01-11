@@ -117,19 +117,29 @@ export const seedDatabase = async () => {
   console.log("Starting MASSIVE database seed...");
   const buyersCol = collection(db, BUYERS_COLLECTION);
   const RECORDS_PER_INDUSTRY = 20; // Generate 20 buyers for each industry
+  const BATCH_SIZE = 499; // Firestore batch limit is 500
 
   // 1. Clear ALL existing data for a clean slate.
   const existingDocs = await getDocs(buyersCol);
   if (existingDocs.size > 0) {
     console.log(`Deleting ${existingDocs.size} old documents...`);
-    const deleteBatch = writeBatch(db);
-    existingDocs.forEach(doc => deleteBatch.delete(doc.ref));
-    await deleteBatch.commit();
+    // Also split deletion into batches if necessary
+    let deleteBatch = writeBatch(db);
+    let i = 0;
+    for (const doc of existingDocs.docs) {
+        deleteBatch.delete(doc.ref);
+        i++;
+        if (i % BATCH_SIZE === 0) {
+            await deleteBatch.commit();
+            deleteBatch = writeBatch(db);
+        }
+    }
+    if (i % BATCH_SIZE !== 0) await deleteBatch.commit(); // commit the last batch
     console.log("Old data cleared successfully.");
   }
 
   // 2. Iterate and generate new data for EACH industry.
-  const addBatch = writeBatch(db);
+  let addBatch = writeBatch(db);
   let totalRecordsCreated = 0;
   const industries = Object.keys(productKeywordsByIndustry);
 
@@ -141,18 +151,24 @@ export const seedDatabase = async () => {
           const buyerData = generateRandomBuyer(totalRecordsCreated, industry);
           addBatch.set(newDocRef, buyerData);
           totalRecordsCreated++;
+          if (totalRecordsCreated % BATCH_SIZE === 0) {
+              console.log(`Committing batch of ${BATCH_SIZE} records...`);
+              await addBatch.commit();
+              addBatch = writeBatch(db);
+          }
       }
   }
+  
+  // 3. Commit the final batch to Firestore.
+  if (totalRecordsCreated % BATCH_SIZE !== 0) {
+      console.log(`Committing final batch of ${totalRecordsCreated % BATCH_SIZE} records...`);
+      await addBatch.commit();
+  }
 
-  // 3. Commit the grand batch to Firestore.
   try {
-    console.log(`Committing ${totalRecordsCreated} new, high-density records to Firestore...`);
-    await addBatch.commit();
     const successMsg = `DATABASE EXPLOSION COMPLETE! Seeded successfully with ${totalRecordsCreated} new buyers across ${industries.length} industries.`;
     console.log(successMsg);
-    alert(successMsg);
   } catch (error) {
     console.error("FATAL: Error during massive database seed:", error);
-    alert(`Error seeding database: ${error}`);
   }
 };
