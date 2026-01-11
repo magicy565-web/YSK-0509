@@ -36,41 +36,8 @@ async function talkToAI(prompt: string, model: string = 'gemini-pro'): Promise<a
     throw new Error("Invalid AI response from proxy");
 }
 
-// --- Business Logic Path 1: Database-Driven Analysis ---
-
-const getDatabaseAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
-    // This function encapsulates the original logic of using the internal buyers database
-    // and generating simulated data for missing pieces.
-    const { total, top10 } = await fetchBuyers(formData.productName);
-
-    const analyzeBuyers = (buyersSample: PotentialBuyer[], totalBuyers: number): { nicheMarkets: NicheMarket[], b2bStrategies: string[] } => {
-        if (buyersSample.length === 0) return { nicheMarkets: [], b2bStrategies: [] };
-        const qualitySeekers = buyersSample.filter(p => p.purchasingPreference === 'quality').length;
-        let profitMarginMsg = qualitySeekers > buyersSample.length * 0.5 ? "高 (多数买家重视质量)" : "中等";
-        return {
-            nicheMarkets: [{ name: `基于 ${totalBuyers} 家已匹配买家的采购额估算`, volume: "稳定" }, { name: `基于买家样本的利润空间分析`, volume: profitMarginMsg }],
-            b2bStrategies: ["核心客户画像: 已验证的采购商，可信度高。", `价值主张: 市场利润空间为“${profitMarginMsg}”，应突出产品质量与附加值。`]
-        };
-    };
-
-    const generateCompetitors = (): Competitor[] => {
-        return Array.from({ length: 3 }, (_, i) => ({
-            name: `Legacy Competitor ${i + 1}`,
-            website: `legacy-competitor-${i+1}.com`,
-            advantages: ["Established brand", "Large distribution network"]
-        }));
-    };
-
-    const analysisResult = analyzeBuyers(top10, total);
-    return {
-        potentialBuyers: { total, top10 },
-        nicheMarkets: analysisResult.nicheMarkets,
-        topCompetitors: generateCompetitors(),
-        b2bStrategies: analysisResult.b2bStrategies,
-    };
-};
-
-// --- Business Logic Path 2: AI-Powered Analysis ---
+// --- Business Logic Path: AI-Powered Analysis ---
+// This path is now the only one used for analysis.
 
 const getAiAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
     const { productName, targetCountry } = formData;
@@ -128,11 +95,10 @@ const getAiAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
 
 // --- Main Service Logic ---
 
+// NOTE: The getAnalysis function has been simplified to ONLY use the AI path
+// to test the hypothesis that the hybrid logic was causing the issue.
 const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
-    if (formData.analysisType === 'ai') {
-        return getAiAnalysis(formData);
-    }
-    return getDatabaseAnalysis(formData);
+    return getAiAnalysis(formData);
 };
 
 const getStrategy = async (formData: InfoFormData, analysisData: AnalysisData): Promise<StrategyData> => {
