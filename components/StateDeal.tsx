@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { DealData, ProductQuotation } from '../types';
+import { DealData, ProductQuotation, QuotationItem } from '../types';
 import { FiPlusCircle, FiTrash2 } from 'react-icons/fi';
+import { ExcelUploader } from './ExcelUploader';
 
 interface Props {
   data: DealData;
@@ -23,21 +24,39 @@ export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
     setDealData(prev => ({ ...prev, quotation: updatedQuotation }));
   };
 
+  const createEmptyProduct = (): ProductQuotation => ({
+    id: Date.now(),
+    productName: '',
+    model: '',
+    unit: 'pcs',
+    exwPrice: '',
+    moq: '',
+  });
+
   const addProduct = () => {
-    const newProduct: ProductQuotation = {
-      id: Date.now(),
-      productName: '',
-      model: '',
-      unit: 'pcs',
-      exwPrice: '',
-      moq: '',
-    };
+    const newProduct = createEmptyProduct();
     setDealData(prev => ({ ...prev, quotation: [...prev.quotation, newProduct] }));
   };
 
   const removeProduct = (id: number) => {
     const updatedQuotation = dealData.quotation.filter(item => item.id !== id);
-    setDealData(prev => ({ ...prev, quotation: updatedQuotation }));
+    if (updatedQuotation.length === 0) {
+      setDealData(prev => ({ ...prev, quotation: [createEmptyProduct()] }));
+    } else {
+      setDealData(prev => ({ ...prev, quotation: updatedQuotation }));
+    }
+  };
+
+  const handleDataExtracted = (extractedData: QuotationItem[]) => {
+    if (extractedData.length > 0) {
+      setDealData(prev => ({ ...prev, quotation: extractedData }));
+    } else {
+      setDealData(prev => ({ ...prev, quotation: [createEmptyProduct()] }));
+    }
+  };
+  
+  const handleClearQuotation = () => {
+      setDealData(prev => ({ ...prev, quotation: [createEmptyProduct()] }));
   };
 
   return (
@@ -59,6 +78,15 @@ export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
       {/* Quotation Section */}
       <div>
         <h3 className="text-lg font-semibold text-slate-700 mb-4">2. 产品报价单 (EXW)</h3>
+        
+        <div className='mb-6'>
+            <p className='text-sm text-slate-600 mb-2'>您可以手动填写下表，或者 <span className='font-semibold'>从Excel文件批量导入</span>：</p>
+            <ExcelUploader 
+                onDataExtracted={handleDataExtracted} 
+                onClear={handleClearQuotation}
+            />
+        </div>
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
@@ -72,7 +100,7 @@ export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {dealData.quotation.map((item, index) => (
+              {dealData.quotation.map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-2"><input type="text" name="productName" value={item.productName} onChange={(e) => handleQuotationChange(item.id, e)} className="w-full p-1 border rounded-md" /></td>
                   <td className="px-4 py-2"><input type="text" name="model" value={item.model} onChange={(e) => handleQuotationChange(item.id, e)} className="w-full p-1 border rounded-md" /></td>
@@ -80,7 +108,9 @@ export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
                   <td className="px-4 py-2"><input type="text" name="exwPrice" value={item.exwPrice} onChange={(e) => handleQuotationChange(item.id, e)} className="w-28 p-1 border rounded-md" /></td>
                   <td className="px-4 py-2"><input type="text" name="moq" value={item.moq} onChange={(e) => handleQuotationChange(item.id, e)} className="w-24 p-1 border rounded-md" /></td>
                   <td className="px-4 py-2 text-center">
-                    {dealData.quotation.length > 1 && <button onClick={() => removeProduct(item.id)} className="text-slate-400 hover:text-red-500"><FiTrash2 /></button>}
+                    <button onClick={() => removeProduct(item.id)} className="text-slate-400 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled={dealData.quotation.length <= 1}>
+                        <FiTrash2 />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -88,7 +118,7 @@ export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
           </table>
         </div>
         <button onClick={addProduct} className="mt-4 flex items-center text-sm text-emerald-600 hover:text-emerald-800">
-          <FiPlusCircle className="mr-2" /> 添加新产品
+          <FiPlusCircle className="mr-2" /> 添加新产品（手动）
         </button>
       </div>
 
