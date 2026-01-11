@@ -29,13 +29,8 @@ function App() {
       const response = await aiService('analysis', formData);
       if (response.data) {
         const data = response.data as AnalysisData;
-        if (data.error) {
-            alert(data.error);
-            setCurrentState(AppState.FORM);
-        } else {
-            setAnalysisData(data);
-            setCurrentState(AppState.ANALYSIS);
-        }
+        setAnalysisData(data);
+        setCurrentState(AppState.ANALYSIS);
       }
     } catch (error) {
       console.error(error);
