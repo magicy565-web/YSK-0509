@@ -1,4 +1,5 @@
 export enum AppState {
+  FORM = 'FORM',
   IDLE = 'IDLE',
   ANALYSIS = 'ANALYSIS',
   STRATEGY = 'STRATEGY',
@@ -34,4 +35,15 @@ export interface DealData {
 export interface ApiResponse {
   step: string;
   data: AnalysisData | StrategyData | DealData | null;
+}
+
+export interface InfoFormData {
+  companyName: string;
+  contactPerson: string;
+  contactPhone: string;
+  productName: string;
+  targetCountry: string;
+  productBrochure: File | null;
+  productImages: FileList | null;
+  auxiliaryFiles: FileList | null;
 }

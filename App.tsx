@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
+import { InfoForm } from './components/InfoForm';
 import { StateIdle } from './components/StateIdle';
 import { StateAnalysis } from './components/StateAnalysis';
 import { StateStrategy } from './components/StateStrategy';
@@ -7,10 +8,10 @@ import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
 import { performAction } from './services/aiService';
-import { AppState, AnalysisData, StrategyData, DealData } from './types';
+import { AppState, AnalysisData, StrategyData, DealData, InfoFormData } from './types';
 
 function App() {
-  const [currentState, setCurrentState] = useState<AppState>(AppState.IDLE);
+  const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   
@@ -19,12 +20,12 @@ function App() {
   const [strategyData, setStrategyData] = useState<StrategyData | null>(null);
   const [dealData, setDealData] = useState<DealData | null>(null);
 
-  const handleStart = async () => {
+  const handleFormSubmit = async (formData: InfoFormData) => {
     setIsLoading(true);
     setLoadingMessage('AI is scanning global market demand...');
     
     try {
-      const response = await performAction('init');
+      const response = await performAction('init', formData);
       if (response.data) {
         setAnalysisData(response.data as AnalysisData);
         setCurrentState(AppState.ANALYSIS);
@@ -92,7 +93,7 @@ function App() {
         {/* Progress Stepper (Simple Visual) */}
         {currentState !== AppState.SUCCESS && (
             <div className="mb-8 hidden sm:flex items-center justify-center space-x-4 text-xs font-semibold tracking-wider text-slate-400">
-            <span className={currentState === AppState.IDLE ? 'text-slate-900' : 'text-emerald-600'}>1. UPLOAD</span>
+            <span className={currentState === AppState.FORM ? 'text-slate-900' : 'text-emerald-600'}>1. UPLOAD</span>
             <span className="w-8 h-px bg-slate-200"></span>
             <span className={currentState === AppState.ANALYSIS ? 'text-slate-900' : currentState === AppState.STRATEGY || currentState === AppState.DEAL ? 'text-emerald-600' : ''}>2. ANALYSIS</span>
             <span className="w-8 h-px bg-slate-200"></span>
@@ -102,8 +103,12 @@ function App() {
             </div>
         )}
 
+        {currentState === AppState.FORM && (
+          <InfoForm onSubmit={handleFormSubmit} />
+        )}
+
         {currentState === AppState.IDLE && (
-          <StateIdle onStart={handleStart} />
+          <StateIdle onStart={() => {}} />
         )}
 
         {currentState === AppState.ANALYSIS && analysisData && (

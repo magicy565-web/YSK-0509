@@ -1,23 +1,30 @@
-import { AnalysisData, StrategyData, DealData, ApiResponse } from '../types';
+import { AnalysisData, StrategyData, DealData, ApiResponse, InfoFormData } from '../types';
 
 const PROMPTS = {
-  init: `你是一个外贸B2B全托管系统的后端 AI。请分析产品的北美市场潜力。要求返回纯 JSON 格式：{"leads": 215, "profit": "$150,000", "market": "北美", "topKeywords": ["Steel", "Heavy Duty"]}`,
-  start: `请生成营销策略。要求返回纯 JSON 格式：{"tactic": "低价策略", "subject": "报价单", "emailBody": "内容...", "channels": ["Email"]}`,
-  quote: `请生成报价单。要求返回纯 JSON 格式：{"clientName": "Turner", "clientRating": "AAA", "productName": "H-Beam", "quantity": "500", "unitPrice": "$850", "totalPrice": "$425k", "shippingCost": "$2k", "term": "DDP"}`,
+  init: (productName: string, targetCountry: string) => 
+    `你是一个外贸B2B全托管系统的后端 AI。请为产品 \"${productName}\" 分析在 \"${targetCountry}\" 市场的潜力。要求返回纯 JSON 格式：{\"leads\": 215, \"profit\": \"$150,000\", \"market\": \"${targetCountry}\", \"topKeywords\": [\"Keyword1\", \"Keyword2\"]}`,
+  start: `请生成营销策略。要求返回纯 JSON 格式：{\"tactic\": \"低价策略\", \"subject\": \"报价单\", \"emailBody\": \"内容...\", \"channels\": [\"Email\"]}`,
+  quote: `请生成报价单。要求返回纯 JSON 格式：{\"clientName\": \"Turner\", \"clientRating\": \"AAA\", \"productName\": \"H-Beam\", \"quantity\": \"500\", \"unitPrice\": \"$850\", \"totalPrice\": \"$425k\", \"shippingCost\": \"$2k\", \"term\": \"DDP\"}`,
 };
 
-export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign'): Promise<ApiResponse> => {
-  // 模拟思考延迟
+export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign', formData?: InfoFormData): Promise<ApiResponse> => {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   if (step === 'sign') {
     return { step: 'success', data: null };
   }
 
-  const prompt = PROMPTS[step];
+  let prompt: string;
+  if (step === 'init' && formData) {
+    prompt = PROMPTS.init(formData.productName, formData.targetCountry);
+  } else if (step === 'start' || step === 'quote') {
+    prompt = PROMPTS[step];
+  } else {
+    throw new Error('Invalid step or missing form data for init step');
+  }
 
   try {
-    console.log("【Debug】Calling local proxy...");
+    console.log("【Debug】Calling local proxy with prompt:", prompt);
     
     const response = await fetch('/api/proxy', {
         method: 'POST',
