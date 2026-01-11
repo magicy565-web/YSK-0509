@@ -14,7 +14,7 @@ interface NicheMarket {
 }
 
 // --- LLM Communication Layer ---
-async function talkToAI(prompt: string, model: string = 'gemini-3-pro'): Promise<any> {
+async function talkToAI(prompt: string, model: string = 'gemini-2.5-pro'): Promise<any> {
     const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +120,7 @@ const getAiAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
         **Return ONLY the raw JSON object.**
     `;
     try {
-        return await talkToAI(prompt, 'gemini-3-pro');
+        return await talkToAI(prompt, 'gemini-2.5-pro');
     } catch (error) {
         console.error("AI analysis failed:", error);
         throw new Error("AI分析服务暂时不可用，请稍后重试。");
@@ -156,7 +156,7 @@ const getStrategy = async (formData: InfoFormData, analysisData: AnalysisData): 
     `;
 
     try {
-        return await talkToAI(prompt, 'gemini-3-pro');
+        return await talkToAI(prompt, 'gemini-2.5-pro');
     } catch (error) {
         console.error("AI strategy generation failed:", error);
         throw new Error("AI策略服务暂时不可用，请稍后重试。");
