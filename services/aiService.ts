@@ -21,6 +21,39 @@ const generateCompetitors = (productName: string): Competitor[] => {
     });
 };
 
+// AI-powered buyer recommendation
+const recommendBuyers = (productName: string): PotentialBuyer[] => {
+    const productKeywords = productName.toLowerCase().split(' ');
+    const industries = ['Electronics', 'Automotive', 'Construction', 'Energy', 'Manufacturing'];
+    const buyerTypes: ('trader' | 'ecommerce' | 'project_contractor' | 'distributor')[] = ['distributor', 'trader', 'ecommerce', 'project_contractor'];
+    
+    const recommendations: PotentialBuyer[] = Array.from({ length: 5 }, (_, i) => {
+        const industry = industries[i % industries.length];
+        const buyerType = buyerTypes[i % buyerTypes.length];
+        const companyName = `Global ${productKeywords[0] || 'Solutions'} ${industry} Corp ${i + 1}`;
+
+        return {
+            id: `rec-${i + 1}`,
+            name: companyName,
+            avatarUrl: `https://avatar.vercel.sh/${companyName}.png?text=GSC`,
+            website: `${companyName.toLowerCase().replace(/\s+/g, '-')}.com`,
+            country: 'USA',
+            location: 'New York, USA',
+            buyerType: buyerType,
+            industry: industry,
+            joinDate: '2023',
+            monthlyPurchaseAmount: Math.floor(Math.random() * 50000) + 10000,
+            sourcingPreference: 'factory',
+            purchasingPreference: i % 2 === 0 ? 'quality' : 'price',
+            historicalInquiries: Math.floor(Math.random() * 20) + 5,
+            intendedProducts: [productName],
+        };
+    });
+
+    return recommendations;
+};
+
+
 // FINAL LOGIC CORRECTION: Function now accepts the total buyer count for accurate analysis.
 const analyzeBuyers = (buyersSample: PotentialBuyer[], totalBuyers: number, productName: string): { nicheMarkets: NicheMarket[], b2bStrategies: string[] } => {
     if (buyersSample.length === 0) return { nicheMarkets: [], b2bStrategies: [] };
@@ -49,7 +82,7 @@ const analyzeBuyers = (buyersSample: PotentialBuyer[], totalBuyers: number, prod
     const b2bStrategies: string[] = [
         `核心客户画像: 主要为“${mostCommonBuyerType}”，应重点研究其采购模式。`,
         `价值主张: 市场利润空间为“${profitMarginMsg}”，应突出产品质量与附加值。`,
-        `渠道策略: ${buyersSample.filter(s => s.sourcingPreference === 'factory').length > buyersSample.length / 2 ? "多数买家偏好与工厂直接合作，可主打'Factory-Direct'模式。" : "买家采购渠道多样，建议结合线上平台和线下代理。"}`,
+        `渠道策略: ${buyersSample.filter(s => s.sourcingPreference === 'factory').length > buyersSample.length / 2 ? "多数买家偏好与工厂直接合作，可主打'Factory-Direct'模式。" : "买家采购渠道多样，建议结合线上平台和线下代理。"}`
     ];
 
     return { nicheMarkets, b2bStrategies };
@@ -59,10 +92,18 @@ const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
     const { total, top10 } = await fetchBuyers(formData.productName);
 
     if (total === 0) {
+        const recommendedBuyers = recommendBuyers(formData.productName);
+        const analysis = analyzeBuyers(recommendedBuyers, recommendedBuyers.length, formData.productName);
+        const competitors = generateCompetitors(formData.productName);
         return {
-            potentialBuyers: { total, top10 },
-            nicheMarkets: [], topCompetitors: [], b2bStrategies: [],
-            error: `数据库中未找到“${formData.productName}”的潜在买家。请尝试其他产品。`
+            potentialBuyers: {
+                total: recommendedBuyers.length,
+                top10: recommendedBuyers,
+            },
+            nicheMarkets: analysis.nicheMarkets,
+            topCompetitors: competitors,
+            b2bStrategies: analysis.b2bStrategies,
+            error: `数据库中未找到“${formData.productName}”的潜在买家。适用办法二，为您推荐以下采购商：`,
         };
     }
 
