@@ -103,7 +103,6 @@ const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
             nicheMarkets: analysis.nicheMarkets,
             topCompetitors: competitors,
             b2bStrategies: analysis.b2bStrategies,
-            error: `数据库中未找到“${formData.productName}”的潜在买家。适用办法二，为您推荐以下采购商：`,
         };
     }
 
