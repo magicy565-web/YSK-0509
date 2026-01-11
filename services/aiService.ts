@@ -14,7 +14,8 @@ interface NicheMarket {
 }
 
 // --- LLM Communication Layer ---
-async function talkToAI(prompt: string, model: string = 'gemini-2.5-pro'): Promise<any> {
+// DIAGNOSTIC: Changed default model to gpt-3.5-turbo for testing
+async function talkToAI(prompt: string, model: string = 'gpt-3.5-turbo'): Promise<any> {
     const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,7 +76,6 @@ const getDatabaseAnalysis = async (formData: InfoFormData): Promise<AnalysisData
 const getAiAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
     const { productName, targetCountry } = formData;
 
-    // --- NEW: Add a JSON schema for the PotentialBuyer --- 
     const potentialBuyerSchema = {
         id: "<string>",
         name: "<string>",
@@ -120,7 +120,8 @@ const getAiAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
         **Return ONLY the raw JSON object.**
     `;
     try {
-        return await talkToAI(prompt, 'gemini-2.5-pro');
+        // DIAGNOSTIC: Changed model to gpt-3.5-turbo for testing
+        return await talkToAI(prompt, 'gpt-3.5-turbo');
     } catch (error) {
         console.error("AI analysis failed:", error);
         throw new Error("AI分析服务暂时不可用，请稍后重试。");
@@ -156,7 +157,8 @@ const getStrategy = async (formData: InfoFormData, analysisData: AnalysisData): 
     `;
 
     try {
-        return await talkToAI(prompt, 'gemini-2.5-pro');
+        // DIAGNOSTIC: Changed model to gpt-3.5-turbo for testing
+        return await talkToAI(prompt, 'gpt-3.5-turbo');
     } catch (error) {
         console.error("AI strategy generation failed:", error);
         throw new Error("AI策略服务暂时不可用，请稍后重试。");
