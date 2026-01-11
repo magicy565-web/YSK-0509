@@ -19,9 +19,15 @@ export default async function handler(req, res) {
   // 2. 准备发给 NovAI 的数据
   const { prompt, model } = req.body;
   
-  // 🔴 你的 Key (为了确保能通，我先帮你写死在这里，测试通了再换环境变量)
-  const apiKey = "sk-LycDc2maWsAZfEvH59T06iRIFlToKfnhHdWeJLtu7cSN1mhP";
-  const baseUrl = "https://once-cf.novai.su/v1/chat/completions";
+  // 从环境变量中读取 Key
+  const apiKey = process.env.NOVAI_API_KEY;
+  const baseUrl = process.env.NOVAI_BASE_URL || "https://once-cf.novai.su/v1/chat/completions";
+
+  if (!apiKey) {
+    const errorMessage = "Server configuration error: NOVAI_API_KEY is not set in environment variables.";
+    console.error(`[Proxy Error] ${errorMessage}`);
+    return res.status(500).json({ error: errorMessage });
+  }
 
   try {
     console.log(`[Proxy] Forwarding request to ${baseUrl} using model ${model}`);
