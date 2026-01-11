@@ -1,3 +1,12 @@
+export enum AppState {
+  IDLE = 'idle',
+  FORM = 'form',
+  ANALYSIS = 'analysis',
+  STRATEGY = 'strategy',
+  DEAL = 'deal',
+  SUCCESS = 'success',
+}
+
 export interface InfoFormData {
   productName: string;
   targetCountry: string;
@@ -38,13 +47,15 @@ export interface AnalysisData {
   error?: string;
 }
 
-export interface StrategyData {
+export type StrategyOption = {
   id: string;
   title: string;
   description: string;
   subject: string;
   emailBody: string;
-}[]
+}
+
+export type StrategyData = StrategyOption[];
 
 export interface DealData {
   clientName: string;
