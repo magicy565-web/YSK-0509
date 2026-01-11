@@ -1,7 +1,18 @@
-import { AnalysisData, InfoFormData, StrategyData, DealData, ApiResponse, PotentialBuyer, Competitor, NicheMarket } from "../types";
+import { AnalysisData, InfoFormData, StrategyData, DealData, ApiResponse, PotentialBuyer } from "../types";
 import { fetchBuyers } from "./buyerService";
 
-// --- HYBRID REALISM ENGINE: ZOMBIE CODE REMOVED & LOGIC CORRECTED ---
+// --- LOCAL TYPE DEFINITIONS FOR ROBUSTNESS ---
+interface Competitor {
+    name: string;
+    website: string;
+    advantages: string[];
+}
+
+interface NicheMarket {
+    name: string;
+    volume: string;
+}
+// --- END OF LOCAL TYPES ---
 
 const generateCompetitors = (productName: string): Competitor[] => {
     const baseName = productName.split(' ').pop() || 'Global';
@@ -21,7 +32,6 @@ const generateCompetitors = (productName: string): Competitor[] => {
     });
 };
 
-// AI-powered buyer recommendation
 const recommendBuyers = (productName: string): PotentialBuyer[] => {
     const productKeywords = productName.toLowerCase().split(' ');
     const industries = ['Electronics', 'Automotive', 'Construction', 'Energy', 'Manufacturing'];
@@ -53,27 +63,21 @@ const recommendBuyers = (productName: string): PotentialBuyer[] => {
     return recommendations;
 };
 
-
-// FINAL LOGIC CORRECTION: Function now accepts the total buyer count for accurate analysis.
 const analyzeBuyers = (buyersSample: PotentialBuyer[], totalBuyers: number, productName: string): { nicheMarkets: NicheMarket[], b2bStrategies: string[] } => {
     if (buyersSample.length === 0) return { nicheMarkets: [], b2bStrategies: [] };
 
-    // 1. Market Volume Calculation (Extrapolated from sample to total)
     const sampleMonthlyPurchase = buyersSample.reduce((sum, buyer) => sum + buyer.monthlyPurchaseAmount, 0);
     const avgMonthlyPurchase = sampleMonthlyPurchase / buyersSample.length;
     const totalEstimatedAnnualMarket = Math.round((avgMonthlyPurchase * totalBuyers * 12) / 1_000_000);
     const marketVolumeMsg = totalEstimatedAnnualMarket > 1 ? `~$${totalEstimatedAnnualMarket}M / 年 (估算)` : "新兴潜力市场";
 
-    // 2. Profit Margin Analysis (Based on sample)
     const qualitySeekers = buyersSample.filter(p => p.purchasingPreference === 'quality').length;
     let profitMarginMsg = "中等";
     if (qualitySeekers > buyersSample.length * 0.5) profitMarginMsg = "高 (多数买家重视质量)";
 
-    // 3. Buyer Persona Analysis (Based on sample)
     const typeCounts = buyersSample.reduce((acc, { buyerType }) => ({ ...acc, [buyerType]: (acc[buyerType] || 0) + 1 }), {} as { [key: string]: number });
     const mostCommonBuyerType = Object.keys(typeCounts).sort((a, b) => typeCounts[b] - typeCounts[a])[0] || '综合类型';
 
-    // 4. Consolidate Insights with correct numbers
     const nicheMarkets: NicheMarket[] = [
         { name: `基于 ${totalBuyers} 家已匹配买家的年采购额估算`, volume: marketVolumeMsg },
         { name: `基于买家样本的利润空间分析`, volume: profitMarginMsg },
@@ -106,7 +110,6 @@ const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
         };
     }
 
-    // FINAL LOGIC CORRECTION: Pass the 'total' count to the analysis function.
     const realDataAnalysis = analyzeBuyers(top10, total, formData.productName);
     const simulatedCompetitors = generateCompetitors(formData.productName);
 
@@ -118,9 +121,10 @@ const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
     };
 };
 
+// --- FIX: RESTORED FULL EMAIL BODY CONTENT ---
 const getStrategy = async (formData: InfoFormData, analysisData: AnalysisData): Promise<StrategyData> => {
     const topBuyer = analysisData.potentialBuyers.top10[0];
-    if (!topBuyer) return []; // Return empty array if no top buyer
+    if (!topBuyer) return [];
 
     const productName = formData.productName;
     const buyerName = topBuyer.name;
@@ -150,22 +154,26 @@ const getStrategy = async (formData: InfoFormData, analysisData: AnalysisData): 
         },
     ];
 };
+// --- END OF FIX ---
 
-const getDeal = async (formData: InfoFormData, analysisData: AnalysisData): Promise<DealData> => {
-    const topBuyer = analysisData.potentialBuyers.top10[0];
-    if (!topBuyer) throw new Error("无法在没有顶级买家数据的情况下生成交易模拟。");
-    const estimatedUnitPrice = Math.max(10, topBuyer.monthlyPurchaseAmount / (topBuyer.historicalInquiries * 8 + 150));
-    const trialQuantity = Math.floor(Math.min(topBuyer.monthlyPurchaseAmount / 4, 50000) / estimatedUnitPrice);
-    const totalPrice = trialQuantity * estimatedUnitPrice;
+const getDeal = async (formData: InfoFormData): Promise<DealData> => {
     return {
-        clientName: topBuyer.name,
-        clientRating: topBuyer.purchasingPreference === 'quality' ? "A+" : "A",
-        productName: formData.productName,
-        quantity: `${trialQuantity.toLocaleString()} 件 (模拟试订单)`,
-        unitPrice: `$${estimatedUnitPrice.toFixed(2)}`,
-        totalPrice: `$${totalPrice.toLocaleString()}`,
-        shippingCost: `$${(totalPrice * 0.06).toLocaleString()}`,
-        term: `CIF, ${topBuyer.location.split(', ')[1] || 'Main Port'}`,
+        clientInfo: {
+            companyName: '',
+            contactPerson: '',
+            email: '',
+            phone: '',
+        },
+        quotation: [
+            {
+                id: Date.now(),
+                productName: formData.productName,
+                model: '',
+                unit: 'pcs',
+                exwPrice: '',
+                moq: '',
+            },
+        ],
     };
 };
 
@@ -182,8 +190,8 @@ export const aiService = async (
       if (!analysisData || !formData) throw new Error("分析数据和表单数据是策略步骤所必需的。");
       return { step, data: await getStrategy(formData, analysisData) };
     case "deal":
-      if (!analysisData || !formData) throw new Error("表单和分析数据是交易步骤所必需的。");
-      return { step, data: await getDeal(formData, analysisData) };
+      if (!formData) throw new Error("表单数据是交易步骤所必需的。");
+      return { step, data: await getDeal(formData) };
     default:
       throw new Error(`无效的步骤: ${step}`);
   }

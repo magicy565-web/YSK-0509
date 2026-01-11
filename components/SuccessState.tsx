@@ -1,37 +1,34 @@
 import React from 'react';
-import { CheckCircle, Download, ArrowRight } from 'lucide-react';
+import { FiCheckCircle, FiDownload } from 'react-icons/fi';
 
-export const SuccessState = () => {
-    return (
-        <div className="max-w-2xl mx-auto py-12 text-center animate-fade-in">
-            <div className="bg-emerald-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-12 h-12 text-emerald-600" />
-            </div>
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Contract Sent Successfully!</h2>
-            <p className="text-slate-600 mb-8 text-lg">
-                The Proforma Invoice (PI) and Sales Contract have been sent to <b>Turner Construction Co.</b> via DocuSign.
-            </p>
-            
-            <div className="bg-white rounded-xl shadow p-6 max-w-md mx-auto mb-8 border border-slate-100">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
-                    <span className="text-slate-500">Contract ID</span>
-                    <span className="font-mono font-medium text-slate-800">#EXP-2023-8842</span>
-                </div>
-                 <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Exp. Closing</span>
-                    <span className="font-medium text-emerald-600">24 Hours</span>
-                </div>
-            </div>
+export const SuccessState: React.FC = () => {
+  return (
+    <div className="bg-white shadow-lg rounded-lg p-12 max-w-2xl mx-auto text-center animate-fade-in-up">
+      <FiCheckCircle className="text-emerald-500 text-6xl mx-auto mb-6" />
+      <h2 className="text-3xl font-bold text-slate-800 mb-3">委托提交成功！</h2>
+      <p className="text-slate-600 mb-8">我们的客户成功团队将在24小时内与您联系，启动客户开发流程。</p>
 
-            <div className="flex justify-center space-x-4">
-                <button className="flex items-center text-slate-600 hover:text-slate-900 font-medium px-4 py-2">
-                    <Download className="w-4 h-4 mr-2" />
-                    Download PDF
-                </button>
-                <button className="bg-slate-900 text-white px-6 py-2 rounded-lg hover:bg-slate-800 transition font-medium flex items-center" onClick={() => window.location.reload()}>
-                    Start New Shipment <ArrowRight className="w-4 h-4 ml-2" />
-                </button>
-            </div>
+      <div className="bg-slate-50 rounded-lg p-6 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+        <div className="flex-shrink-0">
+          {/* --- QR CODE PLACEHOLDER --- */}
+          <div className="w-32 h-32 bg-slate-200 rounded-md flex items-center justify-center">
+            <span className="text-sm text-slate-500">[微信二维码]</span>
+          </div>
+          {/* --- END OF PLACEHOLDER --- */}
         </div>
-    )
-}
+        <div className="text-left">
+          <h4 className="font-semibold text-slate-700">添加您的专属客服</h4>
+          <p className="text-sm text-slate-500 mt-1">扫描左侧二维码，添加您的专属外贸增长顾问，我们将为您提供一对一服务，并邀请您加入项目专属沟通群。</p>
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <button 
+          onClick={() => window.location.reload()} 
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg">
+          开启新的分析
+        </button>
+      </div>
+    </div>
+  );
+};

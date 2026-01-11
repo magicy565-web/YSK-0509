@@ -13,20 +13,20 @@ export interface InfoFormData {
 }
 
 export interface PotentialBuyer {
-  id: string; // 唯一ID
-  name: string; // 公司名称
-  avatarUrl: string; // 公司Logo/头像
-  website: string; // 公司网站
-  country: string; // 国家
-  location: string; // 详细地址
-  buyerType: 'trader' | 'ecommerce' | 'project_contractor' | 'distributor'; // 采购商类型
-  industry: string; // 所属行业
-  joinDate: string; // 平台加入日期
-  monthlyPurchaseAmount: number; // 月度采购订单金额 (美金)
-  sourcingPreference: 'factory' | 'trader'; // 采购类型偏好
-  purchasingPreference: 'price' | 'quality' | 'stability'; // 采购方向偏好
-  historicalInquiries: number; // 历史询盘次数
-  intendedProducts: string[]; // 意向产品
+  id: string;
+  name: string;
+  avatarUrl: string;
+  website: string;
+  country: string;
+  location: string;
+  buyerType: 'trader' | 'ecommerce' | 'project_contractor' | 'distributor';
+  industry: string;
+  joinDate: string;
+  monthlyPurchaseAmount: number;
+  sourcingPreference: 'factory' | 'trader';
+  purchasingPreference: 'price' | 'quality' | 'stability';
+  historicalInquiries: number;
+  intendedProducts: string[];
 }
 
 export interface AnalysisData {
@@ -56,16 +56,31 @@ export type StrategyOption = {
 
 export type StrategyData = StrategyOption[];
 
-export interface DealData {
-  clientName: string;
-  clientRating: string;
-  productName: string;
-  quantity: string;
-  unitPrice: string;
-  totalPrice: string;
-  shippingCost: string;
-  term: string;
+// --- NEW TYPES FOR STEP 4 ---
+
+export interface ClientCompanyInfo {
+  companyName: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
 }
+
+export interface ProductQuotation {
+  id: number;
+  productName: string;
+  model: string;
+  unit: string;
+  exwPrice: string;
+  moq: string;
+}
+
+// DealData is now the commission form
+export interface DealData {
+  clientInfo: ClientCompanyInfo;
+  quotation: ProductQuotation[];
+}
+
+// --- END OF NEW TYPES ---
 
 export interface ApiResponse {
   step: string;
