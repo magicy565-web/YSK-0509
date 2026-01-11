@@ -1,109 +1,104 @@
-import React from 'react';
-import { FileText, ShieldCheck, Truck, Edit2, PenTool, CheckCircle } from 'lucide-react';
-import { DealData } from '../types';
+import React, { useState } from 'react';
+import { DealData, ProductQuotation } from '../types';
+import { FiPlusCircle, FiTrash2 } from 'react-icons/fi';
 
-interface StateDealProps {
+interface Props {
   data: DealData;
-  onSign: () => void;
+  onApprove: (finalDealData: DealData) => void;
 }
 
-export const StateDeal: React.FC<StateDealProps> = ({ data, onSign }) => {
+export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
+  const [dealData, setDealData] = useState<DealData>(data);
+
+  const handleClientInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setDealData(prev => ({ ...prev, clientInfo: { ...prev.clientInfo, [name]: value } }));
+  };
+
+  const handleQuotationChange = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const updatedQuotation = dealData.quotation.map(item =>
+      item.id === id ? { ...item, [name]: value } : item
+    );
+    setDealData(prev => ({ ...prev, quotation: updatedQuotation }));
+  };
+
+  const addProduct = () => {
+    const newProduct: ProductQuotation = {
+      id: Date.now(),
+      productName: '',
+      model: '',
+      unit: 'pcs',
+      exwPrice: '',
+      moq: '',
+    };
+    setDealData(prev => ({ ...prev, quotation: [...prev.quotation, newProduct] }));
+  };
+
+  const removeProduct = (id: number) => {
+    const updatedQuotation = dealData.quotation.filter(item => item.id !== id);
+    setDealData(prev => ({ ...prev, quotation: updatedQuotation }));
+  };
+
   return (
-    <div className="max-w-4xl mx-auto py-8 animate-fade-in pb-24 md:pb-8">
-      {/* High Intent Alert */}
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl shadow-lg p-6 text-white mb-8 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="bg-white/20 p-3 rounded-full">
-            <FileText className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold">High Intent Inquiry Received!</h2>
-            <p className="text-emerald-50 opacity-90">Customer replied within 2 hours. Intent Score: 98/100.</p>
-          </div>
-        </div>
-        <div className="hidden sm:block text-right">
-          <div className="text-sm opacity-75">Status</div>
-          <div className="font-bold text-lg">Action Required</div>
+    <div className="bg-white shadow-lg rounded-lg p-8 max-w-5xl mx-auto animate-fade-in-up">
+      <h2 className="text-2xl font-bold mb-2 text-slate-800">第四步：委托我们为您开发客户</h2>
+      <p className="text-slate-600 mb-8">请填写您的公司信息和产品报价单，我们的专家团队将利用AI分析结果为您精准对接海外采购商。</p>
+
+      {/* Client Information Section */}
+      <div className="mb-8 border-b border-slate-200 pb-6">
+        <h3 className="text-lg font-semibold text-slate-700 mb-4">1. 您的联系方式</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <input type="text" name="companyName" placeholder="公司名称" value={dealData.clientInfo.companyName} onChange={handleClientInfoChange} className="p-2 border rounded-md" />
+          <input type="text" name="contactPerson" placeholder="联系人" value={dealData.clientInfo.contactPerson} onChange={handleClientInfoChange} className="p-2 border rounded-md" />
+          <input type="email" name="email" placeholder="邮箱" value={dealData.clientInfo.email} onChange={handleClientInfoChange} className="p-2 border rounded-md" />
+          <input type="tel" name="phone" placeholder="电话" value={dealData.clientInfo.phone} onChange={handleClientInfoChange} className="p-2 border rounded-md" />
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2">
-          
-          {/* Left: Client Profile */}
-          <div className="p-8 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/50">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Client Profile</h3>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="text-xs text-slate-500">Company Name</label>
-                <div className="text-xl font-bold text-slate-900">{data.clientName}</div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <ShieldCheck className="w-5 h-5 text-blue-500" />
-                <div>
-                  <label className="text-xs text-slate-500">Credit Rating</label>
-                  <div className="font-medium text-slate-800">{data.clientRating}</div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
-                 <div className="flex items-center text-sm text-slate-600 mb-2">
-                    <Truck className="w-4 h-4 mr-2" />
-                    Preferred Incoterm
-                 </div>
-                 <div className="font-bold text-slate-900">{data.term}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: AI Quote */}
-          <div className="p-8">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">AI Suggested Quote</h3>
-                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-medium">Dynamic Pricing</span>
-            </div>
-
-            <div className="space-y-4">
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="text-slate-600">Product</span>
-                    <span className="font-medium text-slate-900">{data.productName}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="text-slate-600">Quantity</span>
-                    <span className="font-medium text-slate-900">{data.quantity}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="text-slate-600">Unit Price</span>
-                    <span className="font-medium text-slate-900">{data.unitPrice}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="text-slate-600">Logistics (Est.)</span>
-                    <span className="font-medium text-slate-900">{data.shippingCost}</span>
-                </div>
-                
-                <div className="pt-4 mt-2 flex justify-between items-end">
-                    <span className="text-lg font-bold text-slate-700">Total</span>
-                    <span className="text-3xl font-extrabold text-emerald-600">{data.totalPrice}</span>
-                </div>
-            </div>
-
-            <div className="mt-8 flex flex-col space-y-3">
-                <button className="w-full py-3 border-2 border-slate-200 text-slate-600 font-bold rounded-lg hover:border-slate-300 hover:bg-slate-50 transition-colors flex justify-center items-center">
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Modify Quote
-                </button>
-                <button 
-                    onClick={onSign}
-                    className="w-full py-3 bg-slate-900 text-white font-bold rounded-lg shadow-lg hover:bg-slate-800 transition-all flex justify-center items-center"
-                >
-                    <PenTool className="w-4 h-4 mr-2" />
-                    Approve & Generate Contract
-                </button>
-            </div>
-          </div>
+      {/* Quotation Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-slate-700 mb-4">2. 产品报价单 (EXW)</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">产品名称</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">型号/规格</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">单位</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">EXW单价 (USD)</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">最小订单量</th>
+                <th className="w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-200">
+              {dealData.quotation.map((item, index) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-2"><input type="text" name="productName" value={item.productName} onChange={(e) => handleQuotationChange(item.id, e)} className="w-full p-1 border rounded-md" /></td>
+                  <td className="px-4 py-2"><input type="text" name="model" value={item.model} onChange={(e) => handleQuotationChange(item.id, e)} className="w-full p-1 border rounded-md" /></td>
+                  <td className="px-4 py-2"><input type="text" name="unit" value={item.unit} onChange={(e) => handleQuotationChange(item.id, e)} className="w-20 p-1 border rounded-md" /></td>
+                  <td className="px-4 py-2"><input type="text" name="exwPrice" value={item.exwPrice} onChange={(e) => handleQuotationChange(item.id, e)} className="w-28 p-1 border rounded-md" /></td>
+                  <td className="px-4 py-2"><input type="text" name="moq" value={item.moq} onChange={(e) => handleQuotationChange(item.id, e)} className="w-24 p-1 border rounded-md" /></td>
+                  <td className="px-4 py-2 text-center">
+                    {dealData.quotation.length > 1 && <button onClick={() => removeProduct(item.id)} className="text-slate-400 hover:text-red-500"><FiTrash2 /></button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+        <button onClick={addProduct} className="mt-4 flex items-center text-sm text-emerald-600 hover:text-emerald-800">
+          <FiPlusCircle className="mr-2" /> 添加新产品
+        </button>
+      </div>
+
+      {/* Approval Button */}
+      <div className="mt-10 flex justify-end border-t border-slate-200 pt-6">
+        <button
+          onClick={() => onApprove(dealData)}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg">
+          确认委托，立即对接
+        </button>
       </div>
     </div>
   );
