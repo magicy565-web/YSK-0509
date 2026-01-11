@@ -1,4 +1,4 @@
-import { collection, getDocs, writeBatch } from "firebase/firestore"; 
+import { collection, getDocs, writeBatch, doc } from "firebase/firestore"; 
 import { db } from "./firebase";
 import { PotentialBuyer } from "../types";
 
@@ -88,16 +88,20 @@ export const seedDatabase = async () => {
     },
   ];
 
+  const buyersCol = collection(db, BUYERS_COLLECTION);
+
   mockData.forEach((buyer) => {
-    // In Firestore, if you don't specify an ID, it will be auto-generated.
-    const docRef = collection(db, BUYERS_COLLECTION);
-    batch.set(docRef.doc(), buyer);
+    // Create a new document reference with an auto-generated ID
+    const newDocRef = doc(buyersCol);
+    batch.set(newDocRef, buyer);
   });
 
   try {
     await batch.commit();
     console.log("Database seeded successfully!");
+    alert('Database seeded successfully!'); // Provide feedback to the user
   } catch (error) {
     console.error("Error seeding database:", error);
+    alert(`Error seeding database: ${error}`); // Provide feedback to the user
   }
 };
