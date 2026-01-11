@@ -14,7 +14,7 @@ interface NicheMarket {
 }
 
 // --- LLM Communication Layer ---
-async function talkToAI(prompt: string, model: string = 'gemini-pro'): Promise<any> {
+async function talkToAI(prompt: string, model: string = 'gemini-3-pro-preview'): Promise<any> {
     const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,24 +74,53 @@ const getDatabaseAnalysis = async (formData: InfoFormData): Promise<AnalysisData
 
 const getAiAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
     const { productName, targetCountry } = formData;
+
+    // --- NEW: Add a JSON schema for the PotentialBuyer --- 
+    const potentialBuyerSchema = {
+        id: "<string>",
+        name: "<string>",
+        avatarUrl: "<string>",
+        website: "<string>",
+        country: "<string>",
+        location: "<string>",
+        buyerType: "<'trader' | 'ecommerce' | 'project_contractor' | 'distributor'>",
+        industry: "<string>",
+        joinDate: "<string> (YYYY-MM-DD)",
+        monthlyPurchaseAmount: "<number>",
+        sourcingPreference: "<'factory' | 'trader'>",
+        purchasingPreference: "<'price' | 'quality' | 'stability'>",
+        historicalInquiries: "<number>",
+        intendedProducts: "<string[]>",
+    };
+
     const prompt = `
         You are a world-class B2B market analyst. Analyze the market for "${productName}" in "${targetCountry}".
         Provide the output in a single valid JSON object.
+
+        **JSON Schema:**
         {
-          "potentialBuyers": { "total": <number>, "top10": <PotentialBuyer[]> },
-          "nicheMarkets": <NicheMarket[]>,
-          "topCompetitors": <Competitor[]>,
+          "potentialBuyers": {
+             "total": <number>,
+             "top10": <PotentialBuyer[]>
+          },
+          "nicheMarkets": <{ name: string, volume: string }[]>,
+          "topCompetitors": <{ name: string, website: string, advantages: string[] }[]>,
           "b2bStrategies": <string[]>
         }
-        Instructions:
-        1. "potentialBuyers": Generate 10 fictional but realistic buyer profiles. Estimate the total number of buyers.
-        2. "nicheMarkets": Generate 2-3 specific niche market suggestions with name and volume.
-        3. "topCompetitors": Generate 3 fictional but realistic competitors with name, website, and advantages.
-        4. "b2bStrategies": Generate 3 actionable B2B strategy recommendations.
-        Return ONLY the raw JSON object.
+
+        **PotentialBuyer Schema:**
+        ${JSON.stringify(potentialBuyerSchema, null, 2)}
+
+        **Instructions:**
+        1. **potentialBuyers**: Generate 10 fictional but realistic buyer profiles based on the schema. Estimate the total number of buyers in the market.
+        2. **nicheMarkets**: Generate 2-3 specific niche market suggestions.
+        3. **topCompetitors**: Generate 3 fictional but realistic competitors.
+        4. **b2bStrategies**: Generate 3 actionable B2B strategy recommendations.
+        
+        **Return ONLY the raw JSON object.**
     `;
     try {
-        return await talkToAI(prompt, 'gemini-pro');
+        return await talkToAI(prompt, 'gemini-3-pro-preview');
     } catch (error) {
         console.error("AI analysis failed:", error);
         throw new Error("AI分析服务暂时不可用，请稍后重试。");
@@ -101,9 +130,7 @@ const getAiAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
 // --- Main Service Logic ---
 
 const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
-    // This is the router. It decides which analysis path to take.
-    // We assume `analysisType` will be added to the InfoFormData type.
-    if ((formData as any).analysisType === 'ai') {
+    if (formData.analysisType === 'ai') {
         return getAiAnalysis(formData);
     }
     return getDatabaseAnalysis(formData);
@@ -129,7 +156,7 @@ const getStrategy = async (formData: InfoFormData, analysisData: AnalysisData): 
     `;
 
     try {
-        return await talkToAI(prompt, 'gemini-pro');
+        return await talkToAI(prompt, 'gemini-3-pro-preview');
     } catch (error) {
         console.error("AI strategy generation failed:", error);
         throw new Error("AI策略服务暂时不可用，请稍后重试。");
