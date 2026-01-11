@@ -2,14 +2,51 @@ import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
 import { db } from "./firebase";
 import { PotentialBuyer } from "../types";
 
+// --- MOCK DATA GENERATION UTILITIES ---
+const getRandomElement = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+const industries = ['Construction', 'Healthcare', 'Automotive', 'Agriculture', 'Technology', 'Textiles', 'Food & Beverage', 'Energy', 'Manufacturing', 'Retail'];
+const countries = {
+    USA: ['New York', 'Los Angeles', 'Houston'],
+    Germany: ['Berlin', 'Hamburg', 'Munich'],
+    China: ['Shanghai', 'Shenzhen', 'Guangzhou'],
+    Japan: ['Tokyo', 'Osaka', 'Nagoya'],
+    Canada: ['Toronto', 'Vancouver', 'Montreal'],
+    UK: ['London', 'Manchester', 'Birmingham'],
+};
+const nameSuffixes = ['Group', 'Inc', 'LLC', 'Solutions', 'International', 'Traders', 'Supplies', 'Co.'];
+const buyerTypes: PotentialBuyer['buyerType'][] = ['distributor', 'ecommerce', 'project_contractor', 'trader'];
+const sourcingPreferences: PotentialBuyer['sourcingPreference'][] = ['factory', 'trader'];
+const purchasingPreferences: PotentialBuyer['purchasingPreference'][] = ['price', 'quality', 'stability'];
+
+const generateRandomBuyer = (index: number): Omit<PotentialBuyer, 'id'> => {
+    const industry = getRandomElement(industries);
+    const country = getRandomElement(Object.keys(countries));
+    const location = getRandomElement(countries[country as keyof typeof countries]);
+    const name = `${getRandomElement(['Global', 'Apex', 'Pioneer', 'Summit', 'Dynamic'])} ${industry} ${getRandomElement(nameSuffixes)}`;
+    const joinDate = new Date(Date.now() - Math.random() * 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    return {
+        name,
+        avatarUrl: `https://i.pravatar.cc/150?u=buyer${index}`,
+        website: `www.${name.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')}.com`,
+        country,
+        location,
+        buyerType: getRandomElement(buyerTypes),
+        industry,
+        joinDate,
+        monthlyPurchaseAmount: Math.floor(Math.random() * 500000) + 10000,
+        sourcingPreference: getRandomElement(sourcingPreferences),
+        purchasingPreference: getRandomElement(purchasingPreferences),
+        historicalInquiries: Math.floor(Math.random() * 50),
+        intendedProducts: ['Product A', 'Product B'], // Simplified for demonstration
+    };
+};
+
+// --- FIRESTORE SERVICE FUNCTIONS ---
+
 const BUYERS_COLLECTION = "buyers";
 
-/**
- * Fetches a list of potential buyers from the Firestore database.
- * 
- * @returns A promise that resolves to an object containing the total number of buyers
- *          and a list of the top 10 buyers.
- */
 export const fetchBuyers = async (): Promise<{ total: number; top10: PotentialBuyer[] }> => {
   try {
     const querySnapshot = await getDocs(collection(db, BUYERS_COLLECTION));
@@ -17,91 +54,36 @@ export const fetchBuyers = async (): Promise<{ total: number; top10: PotentialBu
     querySnapshot.forEach((doc) => {
       buyers.push({ id: doc.id, ...doc.data() } as PotentialBuyer);
     });
-
-    // For now, we return all buyers as "top10" until pagination is implemented.
     return { 
       total: buyers.length,
-      top10: buyers 
+      top10: buyers.slice(0, 10) // Return only the first 10 for display
     };
   } catch (error) {
     console.error("Error fetching buyers from Firestore:", error);
-    // It might be better to return a default or empty state rather than throwing an error,
-    // to prevent the entire component from crashing.
     return { total: 0, top10: [] };
   }
 };
 
-/**
- * Seeds the Firestore database with initial buyer data.
- * This is a one-time operation to populate the database for development and testing.
- * 
- * NOTE: This function will overwrite any existing data in the 'buyers' collection.
- */
 export const seedDatabase = async () => {
+  console.log("Starting to seed database...");
   const batch = writeBatch(db);
-  
-  const mockData: Omit<PotentialBuyer, 'id'>[] = [
-     {
-      name: 'Global Construction Supplies',
-      avatarUrl: 'https://i.pravatar.cc/150?u=buyer001',
-      website: 'www.globalconstructionsupplies.com',
-      country: 'USA',
-      location: 'Houston, TX',
-      buyerType: 'distributor',
-      industry: 'Construction & Building Materials',
-      joinDate: '2022-08-15',
-      monthlyPurchaseAmount: 150000,
-      sourcingPreference: 'factory',
-      purchasingPreference: 'quality',
-      historicalInquiries: 12,
-      intendedProducts: ['H-Beam Steel', 'Rebar', 'Structural Tubing'],
-    },
-    {
-      name: 'Euro Steel Traders B.V.',
-      avatarUrl: 'https://i.pravatar.cc/150?u=buyer002',
-      website: 'www.eurosteeltraders.com',
-      country: 'Netherlands',
-      location: 'Rotterdam',
-      buyerType: 'trader',
-      industry: 'Industrial Manufacturing',
-      joinDate: '2021-03-20',
-      monthlyPurchaseAmount: 80000,
-      sourcingPreference: 'trader',
-      purchasingPreference: 'price',
-      historicalInquiries: 8,
-      intendedProducts: ['Steel Coils', 'Sheet Metal', 'Pipes'],
-    },
-    {
-      name: 'Southeast Asia Metal Co.',
-      avatarUrl: 'https://i.pravatar.cc/150?u=buyer003',
-      website: 'www.seametals.com.sg',
-      country: 'Singapore',
-      location: 'Singapore',
-      buyerType: 'ecommerce',
-      industry: 'Metal Fabrication',
-      joinDate: '2023-01-10',
-      monthlyPurchaseAmount: 50000,
-      sourcingPreference: 'factory',
-      purchasingPreference: 'stability',
-      historicalInquiries: 5,
-      intendedProducts: ['H-Beam Steel', 'Angle Iron'],
-    },
-  ];
-
   const buyersCol = collection(db, BUYERS_COLLECTION);
+  const numberOfRecords = 573;
 
-  mockData.forEach((buyer) => {
-    // Create a new document reference with an auto-generated ID
-    const newDocRef = doc(buyersCol);
-    batch.set(newDocRef, buyer);
-  });
+  console.log(`Generating ${numberOfRecords} records...`);
+  for (let i = 0; i < numberOfRecords; i++) {
+      const newDocRef = doc(buyersCol);
+      const buyerData = generateRandomBuyer(i);
+      batch.set(newDocRef, buyerData);
+  }
 
   try {
+    console.log("Committing batch to Firestore...");
     await batch.commit();
-    console.log("Database seeded successfully!");
-    alert('Database seeded successfully!'); // Provide feedback to the user
+    console.log(`Database seeded successfully with ${numberOfRecords} records!`);
+    alert(`Database seeded successfully with ${numberOfRecords} records!`);
   } catch (error) {
     console.error("Error seeding database:", error);
-    alert(`Error seeding database: ${error}`); // Provide feedback to the user
+    alert(`Error seeding database: ${error}`);
   }
 };
