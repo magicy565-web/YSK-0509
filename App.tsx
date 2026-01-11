@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { InfoForm } from './components/InfoForm';
-import { StateIdle } from './components/StateIdle';
 import { StateAnalysis } from './components/StateAnalysis';
 import { StateStrategy } from './components/StateStrategy';
 import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
-import { aiService } from './services/aiService'; // Corrected import
+import { aiService } from './services/aiService';
 import { AppState, AnalysisData, StrategyData, DealData, InfoFormData, StrategyOption } from './types';
-import { seedDatabase } from './services/buyerService'; // Import the seed function
 
 function App() {
   const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
@@ -17,7 +15,7 @@ function App() {
   const [loadingMessage, setLoadingMessage] = useState('');
   
   // Data holders
-  const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null); // To hold form data across steps
+  const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [strategyData, setStrategyData] = useState<StrategyData | null>(null);
   const [dealData, setDealData] = useState<DealData | null>(null);
@@ -25,17 +23,15 @@ function App() {
   const handleFormSubmit = async (formData: InfoFormData) => {
     setIsLoading(true);
     setLoadingMessage('AI is scanning global market demand...');
-    setInfoFormData(formData); // Save form data for later steps
+    setInfoFormData(formData);
     
     try {
-      // Call the new aiService with the 'analysis' step
       const response = await aiService('analysis', formData);
       if (response.data) {
         const data = response.data as AnalysisData;
         if (data.error) {
-            // If the AI service returns a specific error, show it and stop.
             alert(data.error);
-            setCurrentState(AppState.FORM); // Stay on the form page
+            setCurrentState(AppState.FORM);
         } else {
             setAnalysisData(data);
             setCurrentState(AppState.ANALYSIS);
@@ -59,7 +55,6 @@ function App() {
     setLoadingMessage('Generating outreach strategy & copywriting...');
 
     try {
-      // Call the new aiService with the 'strategy' step
       const response = await aiService('strategy', infoFormData, analysisData);
       if (response.data) {
         setStrategyData(response.data as StrategyData);
@@ -82,7 +77,6 @@ function App() {
     setLoadingMessage('Sending emails & waiting for responses...');
 
     try {
-       // Call the new aiService with the 'deal' step
       const response = await aiService('deal', infoFormData, analysisData, strategyData);
       if (response.data) {
         setDealData(response.data as DealData);
@@ -98,10 +92,7 @@ function App() {
   const handleSignDeal = async () => {
       setIsLoading(true);
       setLoadingMessage('Generating contracts & shipping docs...');
-      
-      // Simulate final step without a backend call
       await new Promise(resolve => setTimeout(resolve, 1500));
-
       setIsLoading(false);
       setCurrentState(AppState.SUCCESS);
   }
@@ -111,15 +102,6 @@ function App() {
       <Navbar currentState={currentState} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        {/* Temporary button for seeding the database */}
-        <div className="text-center mb-4">
-          <button 
-            onClick={seedDatabase} 
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Seed Database (Dev Only)
-          </button>
-        </div>
         
         {/* Progress Stepper */}
         {currentState !== AppState.SUCCESS && (
@@ -136,10 +118,6 @@ function App() {
 
         {currentState === AppState.FORM && (
           <InfoForm onSubmit={handleFormSubmit} />
-        )}
-
-        {currentState === AppState.IDLE && (
-          <StateIdle onStart={() => {}} />
         )}
 
         {currentState === AppState.ANALYSIS && analysisData && (

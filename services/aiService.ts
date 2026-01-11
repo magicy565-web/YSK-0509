@@ -1,139 +1,122 @@
-import { AnalysisData, InfoFormData, StrategyData, DealData, ApiResponse } from "../types";
+import { AnalysisData, InfoFormData, StrategyData, DealData, ApiResponse, PotentialBuyer, Competitor, NicheMarket } from "../types";
 import { fetchBuyers } from "./buyerService";
 
-// A mapping of product keywords to their corresponding industries.
-const productToIndustryMap: { [key: string]: string } = {
-  'steel': 'Construction',
-  'rebar': 'Construction',
-  'cement': 'Construction',
-  'gloves': 'Healthcare',
-  'mask': 'Healthcare',
-  'tires': 'Automotive',
-  'fertilizer': 'Agriculture',
-  'chips': 'Technology',
-  'fabric': 'Textiles',
-  'coffee': 'Food & Beverage',
-  'solar': 'Energy',
-  'bearings': 'Manufacturing',
-  'pos': 'Retail',
+// --- HYBRID REALISM ENGINE: ZOMBIE CODE REMOVED & LOGIC CORRECTED ---
+
+const generateCompetitors = (productName: string): Competitor[] => {
+    const baseName = productName.split(' ').pop() || 'Global';
+    const nameKeywords = ['Solutions', 'Tech', 'Industries', 'Group', 'Enterprises'];
+    const prefixes = ['Apex', 'Pioneer', 'Nova', 'Quantum', 'Vertex'];
+    
+    return Array.from({ length: 4 }, (_, i) => {
+        const name = `${prefixes[i]} ${baseName} ${nameKeywords[i]}`;
+        return {
+            name: name,
+            website: `${name.toLowerCase().replace(/\s+/g, '-')}.com`,
+            advantages: [
+                i === 0 ? "拥有欧洲分销网络" : "通过 ISO 9001 认证",
+                i === 1 ? "专注于高能量密度型号" : "提供定制化解决方案",
+            ],
+        };
+    });
 };
 
-/**
- * Finds the most likely industry for a given product name.
- * @param productName The name of the product.
- * @returns The matched industry or a default value.
- */
-const getIndustryFromProduct = (productName: string): string => {
-  const lowerCaseProduct = productName.toLowerCase();
-  for (const keyword in productToIndustryMap) {
-    if (lowerCaseProduct.includes(keyword)) {
-      return productToIndustryMap[keyword];
-    }
-  }
-  return 'General'; // Default industry if no keyword matches
+// FINAL LOGIC CORRECTION: Function now accepts the total buyer count for accurate analysis.
+const analyzeBuyers = (buyersSample: PotentialBuyer[], totalBuyers: number, productName: string): { nicheMarkets: NicheMarket[], b2bStrategies: string[] } => {
+    if (buyersSample.length === 0) return { nicheMarkets: [], b2bStrategies: [] };
+
+    // 1. Market Volume Calculation (Extrapolated from sample to total)
+    const sampleMonthlyPurchase = buyersSample.reduce((sum, buyer) => sum + buyer.monthlyPurchaseAmount, 0);
+    const avgMonthlyPurchase = sampleMonthlyPurchase / buyersSample.length;
+    const totalEstimatedAnnualMarket = Math.round((avgMonthlyPurchase * totalBuyers * 12) / 1_000_000);
+    const marketVolumeMsg = totalEstimatedAnnualMarket > 1 ? `~$${totalEstimatedAnnualMarket}M / 年 (估算)` : "新兴潜力市场";
+
+    // 2. Profit Margin Analysis (Based on sample)
+    const qualitySeekers = buyersSample.filter(p => p.purchasingPreference === 'quality').length;
+    let profitMarginMsg = "中等";
+    if (qualitySeekers > buyersSample.length * 0.5) profitMarginMsg = "高 (多数买家重视质量)";
+
+    // 3. Buyer Persona Analysis (Based on sample)
+    const typeCounts = buyersSample.reduce((acc, { buyerType }) => ({ ...acc, [buyerType]: (acc[buyerType] || 0) + 1 }), {} as { [key: string]: number });
+    const mostCommonBuyerType = Object.keys(typeCounts).sort((a, b) => typeCounts[b] - typeCounts[a])[0] || '综合类型';
+
+    // 4. Consolidate Insights with correct numbers
+    const nicheMarkets: NicheMarket[] = [
+        { name: `基于 ${totalBuyers} 家已匹配买家的年采购额估算`, volume: marketVolumeMsg },
+        { name: `基于买家样本的利润空间分析`, volume: profitMarginMsg },
+    ];
+
+    const b2bStrategies: string[] = [
+        `核心客户画像: 主要为“${mostCommonBuyerType}”，应重点研究其采购模式。`,
+        `价值主张: 市场利润空间为“${profitMarginMsg}”，应突出产品质量与附加值。`,
+        `渠道策略: ${buyersSample.filter(s => s.sourcingPreference === 'factory').length > buyersSample.length / 2 ? "多数买家偏好与工厂直接合作，可主打'Factory-Direct'模式。" : "买家采购渠道多样，建议结合线上平台和线下代理。"}`,
+    ];
+
+    return { nicheMarkets, b2bStrategies };
 };
 
-/**
- * Simulates an AI analyzing the user's input to generate a market analysis.
- * This function now fetches real, filtered data from the buyer service.
- * 
- * @param formData - The user's input from the information form.
- * @returns A promise that resolves to the analysis data.
- */
 const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
-  console.log(`AI Service: Analyzing for product: ${formData.productName}`);
+    const { total, top10 } = await fetchBuyers(formData.productName);
 
-  // Fetch buyers based on the user-provided product name.
-  const potentialBuyers = await fetchBuyers(formData.productName);
+    if (total === 0) {
+        return {
+            potentialBuyers: { total, top10 },
+            nicheMarkets: [], topCompetitors: [], b2bStrategies: [],
+            error: `数据库中未找到“${formData.productName}”的潜在买家。请尝试其他产品。`
+        };
+    }
 
-  // If no buyers are found, return a specific message.
-  if (potentialBuyers.total === 0) {
+    // FINAL LOGIC CORRECTION: Pass the 'total' count to the analysis function.
+    const realDataAnalysis = analyzeBuyers(top10, total, formData.productName);
+    const simulatedCompetitors = generateCompetitors(formData.productName);
+
     return {
-      potentialBuyers,
-      nicheMarkets: [],
-      topCompetitors: [],
-      b2bStrategies: [],
-      error: `No potential buyers found for "${formData.productName}". Try a different product, like "Steel" or "Gloves".`
+        potentialBuyers: { total, top10 },
+        nicheMarkets: realDataAnalysis.nicheMarkets,
+        topCompetitors: simulatedCompetitors,
+        b2bStrategies: realDataAnalysis.b2bStrategies,
     };
-  }
-
-  // Dynamically generate other analysis sections based on the fetched data.
-  const industry = getIndustryFromProduct(formData.productName);
-
-  return {
-    potentialBuyers,
-    nicheMarkets: [
-      { name: `High-demand for ${formData.productName} in the ${industry} sector`, volume: "High" },
-      { name: `B2B E-commerce for ${industry} parts`, volume: "Medium" },
-    ],
-    topCompetitors: [
-      { name: "Global Sourcing Inc.", website: "globalsourcing.com", advantages: ["Strong logistics network", "Competitive pricing"] },
-      { name: "SupplyChain Masters", website: "supplychainmasters.com", advantages: ["AI-powered matching", "Excellent customer service"] },
-    ],
-    b2bStrategies: [
-      `Target large distributors in the ${formData.targetCountry} ${industry} market.`,
-      "Develop a strong online presence with a focus on SEO for product keywords.",
-      "Attend major industry trade shows to network with potential buyers.",
-    ],
-  };
 };
 
-
-/**
- * Simulates an AI generating personalized outreach strategies.
- * @param analysisData - The market analysis data.
- * @returns A promise that resolves to the strategy data.
- */
-const getStrategy = async (analysisData: AnalysisData): Promise<StrategyData> => {
-  // This function can be expanded to generate more dynamic strategies.
-  const topBuyer = analysisData.potentialBuyers.top10[0];
-  if (!topBuyer) return [];
-
-  return [
-    {
-      id: 'cold-email',
-      title: `Cold Email Outreach to ${topBuyer.name}`,
-      description: "Craft a compelling cold email to introduce your products and company.",
-      subject: `Inquiry regarding ${topBuyer.intendedProducts[0]} for ${topBuyer.name}`,
-      emailBody: `Dear Purchasing Manager at ${topBuyer.name},...`,
-    },
-    {
-      id: 'linkedin-outreach',
-      title: `LinkedIn Connection Request to Key Personnel at ${topBuyer.name}`,
-      description: "Connect with key decision-makers on LinkedIn to build a professional relationship.",
-      subject: "", // Not applicable for LinkedIn
-      emailBody: `Hi, I came across ${topBuyer.name} and was impressed by your work in the ${topBuyer.industry} industry. I'd like to connect...`,
-    },
-  ];
+const getStrategy = async (formData: InfoFormData, analysisData: AnalysisData): Promise<StrategyData> => {
+    const topBuyer = analysisData.potentialBuyers.top10[0];
+    if (!topBuyer) return [];
+    return [
+        {
+            id: 'cold-email',
+            title: `生成给 ${topBuyer.name} 的开发信`,
+            description: "系统将根据其采购特点，为您生成一封个性化的买家开发信。",
+            subject: `关于 ${topBuyer.intendedProducts[0] || formData.productName} 的合作咨询`,
+            emailBody: `尊敬的 ${topBuyer.name} 采购经理，...`,
+        },
+        {
+            id: 'linkedin-outreach',
+            title: `生成领英 (LinkedIn) 开发信`,
+            description: "通过领英，与关键决策人建立更私人的联系。",
+            subject: "",
+            emailBody: `您好 [请替换为对方职位，如'采购总监'或具体姓名]，...`,
+        },
+    ];
 };
 
-/**
- * Simulates the final step of closing a deal.
- * @param _strategyData - The chosen strategy.
- * @returns A promise that resolves to the deal data.
- */
-const getDeal = async (_strategyData: StrategyData): Promise<DealData> => {
-  // This function can be expanded to be more dynamic.
-  return {
-    clientName: "Global Construction Supplies",
-    clientRating: "A+",
-    productName: "H-Beam Steel",
-    quantity: "1000 tons",
-    unitPrice: "$800/ton",
-    totalPrice: "$800,000",
-    shippingCost: "$50,000",
-    term: "CIF, Port of Houston",
-  };
+const getDeal = async (formData: InfoFormData, analysisData: AnalysisData): Promise<DealData> => {
+    const topBuyer = analysisData.potentialBuyers.top10[0];
+    if (!topBuyer) throw new Error("无法在没有顶级买家数据的情况下生成交易模拟。");
+    const estimatedUnitPrice = Math.max(10, topBuyer.monthlyPurchaseAmount / (topBuyer.historicalInquiries * 8 + 150));
+    const trialQuantity = Math.floor(Math.min(topBuyer.monthlyPurchaseAmount / 4, 50000) / estimatedUnitPrice);
+    const totalPrice = trialQuantity * estimatedUnitPrice;
+    return {
+        clientName: topBuyer.name,
+        clientRating: topBuyer.purchasingPreference === 'quality' ? "A+" : "A",
+        productName: formData.productName,
+        quantity: `${trialQuantity.toLocaleString()} 件 (模拟试订单)`,
+        unitPrice: `$${estimatedUnitPrice.toFixed(2)}`,
+        totalPrice: `$${totalPrice.toLocaleString()}`,
+        shippingCost: `$${(totalPrice * 0.06).toLocaleString()}`,
+        term: `CIF, ${topBuyer.location.split(', ')[1] || 'Main Port'}`,
+    };
 };
 
-/**
- * Main AI service function to handle requests based on the current app state.
- * @param step - The current step in the application flow.
- * @param formData - The data from the information form.
- * @param analysisData - The data from the analysis step.
- * @param strategyData - The data from the strategy step.
- * @returns A promise that resolves to the API response for the current step.
- */
 export const aiService = async (
   step: string,
   formData: InfoFormData,
@@ -142,17 +125,14 @@ export const aiService = async (
 ): Promise<ApiResponse> => {
   switch (step) {
     case "analysis":
-      const analysisResult = await getAnalysis(formData);
-      return { step, data: analysisResult };
+      return { step, data: await getAnalysis(formData) };
     case "strategy":
-      if (!analysisData) throw new Error("Analysis data is required for the strategy step.");
-      const strategyResult = await getStrategy(analysisData);
-      return { step, data: strategyResult };
+      if (!analysisData || !formData) throw new Error("分析数据和表单数据是策略步骤所必需的。");
+      return { step, data: await getStrategy(formData, analysisData) };
     case "deal":
-      if (!strategyData) throw new Error("Strategy data is required for the deal step.");
-      const dealResult = await getDeal(strategyData);
-      return { step, data: dealResult };
+      if (!analysisData || !formData) throw new Error("表单和分析数据是交易步骤所必需的。");
+      return { step, data: await getDeal(formData, analysisData) };
     default:
-      throw new Error(`Invalid step: ${step}`);
+      throw new Error(`无效的步骤: ${step}`);
   }
 };
