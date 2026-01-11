@@ -1,152 +1,91 @@
-import React, { useState, useCallback, ChangeEvent } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StrategyData, StrategyOption } from '../types';
-import { Check, Edit, Upload, FileText, Bot, Factory, Gift, Briefcase } from 'lucide-react';
 
-interface StateStrategyProps {
+interface Props {
   data: StrategyData;
   onApprove: (selectedStrategy: StrategyOption) => void;
 }
 
-const ICONS: { [key: string]: React.ElementType } = {
-  'strategy-1': Factory,
-  'strategy-2': Gift,
-  'strategy-3': Briefcase,
-};
+export const StateStrategy: React.FC<Props> = ({ data, onApprove }) => {
+  const [activeTab, setActiveTab] = useState(data[0]?.id || '');
+  const [editedStrategies, setEditedStrategies] = useState<StrategyData>(data);
 
-export const StateStrategy: React.FC<StateStrategyProps> = ({ data, onApprove }) => {
-  const [strategies, setStrategies] = useState<StrategyData>(data);
-  const [selectedTab, setSelectedTab] = useState<string>(data[0].id);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+  useEffect(() => {
+    if (data.length > 0 && !data.find(s => s.id === activeTab)) {
+      setActiveTab(data[0].id);
+    }
+    setEditedStrategies(data);
+  }, [data]);
 
-  const selectedStrategy = strategies.find(s => s.id === selectedTab)!;
-
-  const handleContentChange = (field: 'subject' | 'emailBody', value: string) => {
-    const newStrategies = strategies.map(s => 
-      s.id === selectedTab ? { ...s, [field]: value } : s
+  const handleContentChange = (id: string, field: 'subject' | 'emailBody', value: string) => {
+    const updatedStrategies = editedStrategies.map(strategy =>
+      strategy.id === id ? { ...strategy, [field]: value } : strategy
     );
-    setStrategies(newStrategies);
+    setEditedStrategies(updatedStrategies);
   };
 
-  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'text/plain') {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        // Assume the first line is the subject
-        const firstLineEnd = content.indexOf('\n');
-        const subject = content.substring(0, firstLineEnd).replace('Subject:', '').trim();
-        const emailBody = content.substring(firstLineEnd + 1).trim();
-        handleContentChange('subject', subject);
-        handleContentChange('emailBody', emailBody);
-        setIsEditing(true); 
-      };
-      reader.readAsText(file);
+  const handleApproveClick = () => {
+    const selectedStrategy = editedStrategies.find(s => s.id === activeTab);
+    if (selectedStrategy) {
+      onApprove(selectedStrategy);
     }
   };
 
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const activeStrategy = editedStrategies.find(s => s.id === activeTab);
 
   return (
-    <div className="max-w-5xl mx-auto py-8 animate-fade-in">
-      {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-900">Strategy & Content Review</h2>
-        <p className="text-slate-500 mt-1">Choose and customize your outreach email strategy.</p>
-      </div>
+    <div className="bg-white shadow-lg rounded-lg p-6 max-w-4xl mx-auto animate-fade-in-up">
+      <h2 className="text-2xl font-bold mb-2">第三步：选择开发策略</h2>
+      <p className="text-slate-600 mb-6">AI为您生成了三种开发策略，请选择并进行个性化定制。</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* Left: Tab Navigation */}
-        <div className="md:col-span-1">
-          <div className="sticky top-8">
-             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center">
-                <Bot className="w-4 h-4 mr-2" />
-                AI-Generated Strategies
-            </h3>
-            <div className="space-y-2">
-              {strategies.map(strategy => {
-                const Icon = ICONS[strategy.id] || Factory;
-                return (
-                <button 
-                  key={strategy.id} 
-                  onClick={() => setSelectedTab(strategy.id)}
-                  className={`w-full text-left p-4 rounded-lg border transition-all ${selectedTab === strategy.id ? 'bg-blue-50 border-blue-300 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
-                    <div className="flex items-center">
-                        <div className={`p-2 rounded-full mr-3 ${selectedTab === strategy.id ? 'bg-blue-100' : 'bg-slate-100'}`}>
-                            <Icon className={`w-5 h-5 ${selectedTab === strategy.id ? 'text-blue-600' : 'text-slate-500'}`} />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-800">{strategy.title}</h4>
-                            <p className="text-xs text-slate-500 mt-1">{strategy.description}</p>
-                        </div>
-                    </div>
-                </button>
-              ) })}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Content Display & Edit */}
-        <div className="md:col-span-3">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-800">Email Content Preview</h3>
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={() => fileInputRef.current?.click()} 
-                  className="flex items-center text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-colors">
-                  <Upload className="w-4 h-4 mr-1.5" />
-                  Upload TXT
-                </button>
-                <input type="file" accept=".txt" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-
-                <button onClick={() => setIsEditing(!isEditing)} className={`flex items-center text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${isEditing ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                  <Edit className="w-4 h-4 mr-1.5" />
-                  {isEditing ? 'Lock Content' : 'Customize'}
-                </button>
-              </div>
-            </div>
-            
-            <div className={`p-4 border rounded-lg ${isEditing ? 'border-blue-300 bg-white' : 'border-slate-200 bg-slate-50/80'}`}>
-              <div className="mb-4">
-                <label className="text-xs font-semibold text-slate-500 uppercase">Subject</label>
-                <input 
-                  type="text" 
-                  value={selectedStrategy.subject}
-                  onChange={e => handleContentChange('subject', e.target.value)}
-                  readOnly={!isEditing}
-                  className={`mt-1 w-full p-2 rounded ${isEditing ? 'border border-slate-300 focus:ring-2 focus:ring-blue-300' : 'border-transparent bg-transparent'} text-slate-800 font-semibold transition-all`}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase">Body</label>
-                <textarea 
-                  value={selectedStrategy.emailBody}
-                  onChange={e => handleContentChange('emailBody', e.target.value)}
-                  readOnly={!isEditing}
-                  className={`mt-1 w-full p-2 rounded ${isEditing ? 'border border-slate-300 focus:ring-2 focus:ring-blue-300' : 'border-transparent bg-transparent'} text-slate-600 leading-relaxed transition-all`}
-                  rows={12}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-slate-200 p-4 shadow-lg md:static md:shadow-none md:bg-transparent md:border-0 md:p-0 md:mt-12">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between bg-slate-900 text-white p-2 rounded-xl md:pl-8">
-          <div className="text-sm text-slate-300 mb-2 md:mb-0 text-center md:text-left">
-            Choose a strategy and customize the content before launching the outreach.
-          </div>
+      <div className="flex border-b border-slate-200 mb-6">
+        {editedStrategies.map(strategy => (
           <button
-            onClick={() => onApprove(selectedStrategy)}
-            className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center"
-          >
-            <Check className="w-5 h-5 mr-2" />
-            Confirm Strategy & Launch Outreach
+            key={strategy.id}
+            onClick={() => setActiveTab(strategy.id)}
+            className={`px-4 py-2 text-sm font-semibold transition-colors duration-200 ease-in-out -mb-px border-b-2 ${activeTab === strategy.id
+                ? 'border-emerald-500 text-emerald-600'
+                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+              }`}>
+            {strategy.title}
           </button>
+        ))}
+      </div>
+
+      {activeStrategy && (
+        <div>
+          <p className="text-sm text-slate-500 mb-4">{activeStrategy.description}</p>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="subject" className="block text-sm font-medium text-slate-700 mb-1">邮件主题</label>
+              <input
+                type="text"
+                id="subject"
+                value={activeStrategy.subject}
+                onChange={(e) => handleContentChange(activeStrategy.id, 'subject', e.target.value)}
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="emailBody" className="block text-sm font-medium text-slate-700 mb-1">邮件正文</label>
+              <textarea
+                id="emailBody"
+                rows={12}
+                value={activeStrategy.emailBody}
+                onChange={(e) => handleContentChange(activeStrategy.id, 'emailBody', e.target.value)}
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 whitespace-pre-wrap"
+              />
+            </div>
+          </div>
         </div>
+      )}
+
+      <div className="mt-8 flex justify-end">
+        <button
+          onClick={handleApproveClick}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out transform hover:scale-105">
+          确认并发送
+        </button>
       </div>
     </div>
   );

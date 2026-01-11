@@ -120,21 +120,33 @@ const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
 
 const getStrategy = async (formData: InfoFormData, analysisData: AnalysisData): Promise<StrategyData> => {
     const topBuyer = analysisData.potentialBuyers.top10[0];
-    if (!topBuyer) return [];
+    if (!topBuyer) return []; // Return empty array if no top buyer
+
+    const productName = formData.productName;
+    const buyerName = topBuyer.name;
+    const buyerIndustry = topBuyer.industry;
+
     return [
         {
-            id: 'cold-email',
-            title: `生成给 ${topBuyer.name} 的开发信`,
-            description: "系统将根据其采购特点，为您生成一封个性化的买家开发信。",
-            subject: `关于 ${topBuyer.intendedProducts[0] || formData.productName} 的合作咨询`,
-            emailBody: `尊敬的 ${topBuyer.name} 采购经理，...`,
+            id: 'value-prop',
+            title: '价值主张策略',
+            description: '强调产品的核心优势和给客户带来的直接价值。',
+            subject: `合作提案：为您提升${productName}采购效益`,
+            emailBody: `尊敬的 ${buyerName} 采购经理，\n\n您好！\n\n了解到贵公司在${buyerIndustry}领域追求高品质标准，我写信向您推荐我们的${productName}。我们的产品专门为...[此处插入产品核心优势，例如：采用最新技术/拥有独家专利/通过XX认证]，能够为贵公司带来...[此处插入给客户带来的价值，例如：显著提高生产效率/降低30%的维护成本/增强终端用户体验]。\n\n我们拥有服务[提及类似知名客户或行业]的经验，深知贵公司的需求。附件是我们的产品手册，期待有机会为您提供一个定制化的样品。\n\n顺祝商祺！\n\n[您的姓名]\n[您的公司]`,
         },
         {
-            id: 'linkedin-outreach',
-            title: `生成领英 (LinkedIn) 开发信`,
-            description: "通过领英，与关键决策人建立更私人的联系。",
-            subject: "",
-            emailBody: `您好 [请替换为对方职位，如'采购总监'或具体姓名]，...`,
+            id: 'relationship-building',
+            title: '建立关系策略',
+            description: '侧重于建立长期合作关系，而非单次交易。',
+            subject: `关于${productName}合作的初步探讨`,
+            emailBody: `尊敬的 ${buyerName} 采购经理，\n\n您好！\n\n通过[您了解对方的渠道，例如：行业展会/领英]，我关注贵公司很久了，非常欣赏贵公司在${buyerIndustry}领域的声誉。\n\n我来自[您的公司]，我们专注于为像贵公司这样的行业领导者提供高可靠性的${productName}。我们相信，成功的合作建立在相互信任和共同发展之上。\n\n我们不仅仅是供应商，更希望成为您供应链中值得信赖的合作伙伴，共同应对市场挑战。不知您是否方便在近期进行一个简短的线上交流，让我们互相了解，探讨未来合作的可能性？\n\n期待您的回复！\n\n[您的姓名]\n[您的公司]`,
+        },
+        {
+            id: 'problem-solving',
+            title: '解决问题策略',
+            description: '从客户的痛点出发，提供针对性的解决方案。',
+            subject: `一个关于优化${productName}供应链的建议`,
+            emailBody: `尊敬的 ${buyerName} 采购经理，\n\n您好！\n\n在与许多${buyerIndustry}的同行交流时，我们发现他们普遍面临着...[此处插入客户的痛点，例如：供应链不稳定/现有产品故障率高/采购成本居高不下]等挑战。\n\n如果贵公司也存在类似的困扰，我们的${productName}及配套服务或许能为您提供一个有效的解决方案。我们通过...[此处插入您的解决方案，例如：全球仓储网络确保稳定供货/产品经过5轮额外质检/规模化生产实现成本优势]，成功帮助客户...[此处插入成功案例结果]。\n\n我们非常乐意为您提供一份免费的供应链优化分析。如果您感兴趣，请告知我们您方便的时间。\n\n祝好！\n\n[您的姓名]\n[您的公司]`,
         },
     ];
 };
