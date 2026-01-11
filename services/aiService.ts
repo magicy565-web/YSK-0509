@@ -1,4 +1,5 @@
-import { AnalysisData, StrategyData, DealData, ApiResponse, InfoFormData, PotentialBuyer } from '../types';
+import { AnalysisData, StrategyData, DealData, ApiResponse, InfoFormData } from '../types';
+import { fetchBuyers } from './buyerService';
 
 const PROMPTS = {
   init: (productName: string, targetCountry: string) => 
@@ -58,77 +59,10 @@ const PROMPTS = {
     }`,
 };
 
-// Mock data simulating a database fetch
-const mockPotentialBuyers: { total: number; top10: PotentialBuyer[] } = {
-  total: 68,
-  top10: [
-    {
-      id: 'buyer-001',
-      avatarUrl: 'https://i.pravatar.cc/150?u=buyer001',
-      name: 'Global Construction Supplies',
-      joinDate: '2022-08-15',
-      industry: 'Construction & Building Materials',
-      businessModel: 'Wholesale Distributor',
-      historicalInquiries: 12,
-      intendedProducts: ['H-Beam Steel', 'Rebar', 'Structural Tubing'],
-      location: 'Houston, TX, USA',
-      website: 'www.globalconstructionsupplies.com'
-    },
-    {
-      id: 'buyer-002',
-      avatarUrl: 'https://i.pravatar.cc/150?u=buyer002',
-      name: 'Euro Steel Traders B.V.',
-      joinDate: '2021-03-20',
-      industry: 'Industrial Manufacturing',
-      businessModel: 'Importer/Agent',
-      historicalInquiries: 8,
-      intendedProducts: ['Steel Coils', 'Sheet Metal', 'Pipes'],
-      location: 'Rotterdam, Netherlands',
-      website: 'www.eurosteeltraders.com'
-    },
-    {
-      id: 'buyer-003',
-      avatarUrl: 'https://i.pravatar.cc/150?u=buyer003',
-      name: 'Southeast Asia Metal Co.',
-      joinDate: '2023-01-10',
-      industry: 'Metal Fabrication',
-      businessModel: 'Direct Importer',
-      historicalInquiries: 5,
-      intendedProducts: ['H-Beam Steel', 'Angle Iron'],
-      location: 'Singapore',
-      website: 'www.seametals.com.sg'
-    },
-    {
-      id: 'buyer-004',
-      avatarUrl: 'https://i.pravatar.cc/150?u=buyer004',
-      name: 'Canada Infrastructure Inc.',
-      joinDate: '2020-11-05',
-      industry: 'Infrastructure Development',
-      businessModel: 'Project Contractor',
-      historicalInquiries: 15,
-      intendedProducts: ['Structural Steel', 'Guard Rails'],
-      location: 'Toronto, ON, Canada',
-      website: 'www.canadainfrastructure.ca'
-    },
-     {
-      id: 'buyer-005',
-      avatarUrl: 'https://i.pravatar.cc/150?u=buyer005',
-      name: 'AUS Steel Solutions',
-      joinDate: '2022-06-21',
-      industry: 'Mining & Resources',
-      businessModel: 'Equipment Supplier',
-      historicalInquiries: 7,
-      intendedProducts: ['Heavy-duty Steel Beams', 'Plate Steel'],
-      location: 'Perth, WA, Australia',
-      website: 'www.aussteelsolutions.com.au'
-    },
-  ]
-};
-
 export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign', formData?: InfoFormData): Promise<ApiResponse> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
   if (step === 'sign') {
+    // Simulate a sign-off action
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     return { step: 'success', data: null };
   }
 
@@ -181,10 +115,11 @@ export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign', f
 
     if (step === 'init') {
       nextStep = 'analysis';
-      // Combine AI results with mock buyer data
+      // Fetch buyers from Firestore and combine with AI results
+      const buyersData = await fetchBuyers();
       finalData = {
         ...jsonData,
-        potentialBuyers: mockPotentialBuyers,
+        potentialBuyers: buyersData,
       };
     }
     if (step === 'start') nextStep = 'strategy';

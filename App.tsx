@@ -9,6 +9,7 @@ import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
 import { performAction } from './services/aiService';
 import { AppState, AnalysisData, StrategyData, DealData, InfoFormData, StrategyOption } from './types';
+import { seedDatabase } from './services/buyerService'; // Import the seed function
 
 function App() {
   const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
@@ -92,6 +93,16 @@ function App() {
       <Navbar currentState={currentState} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        {/* Temporary button for seeding the database */}
+        <div className="text-center mb-4">
+          <button 
+            onClick={seedDatabase} 
+            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Seed Database (Dev Only)
+          </button>
+        </div>
+
         {/* Progress Stepper (Simple Visual) */}
         {currentState !== AppState.SUCCESS && (
             <div className="mb-8 hidden sm:flex items-center justify-center space-x-4 text-xs font-semibold tracking-wider text-slate-400">
