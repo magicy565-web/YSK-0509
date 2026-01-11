@@ -44,7 +44,6 @@ export interface AnalysisData {
     advantages: string[];
   }[];
   b2bStrategies: string[];
-  error?: string;
 }
 
 export type StrategyOption = {
