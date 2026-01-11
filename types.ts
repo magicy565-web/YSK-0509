@@ -9,9 +9,16 @@ export enum AppState {
 
 // 1. 潜在采购商
 export interface PotentialBuyer {
+  id: string;
+  avatarUrl: string;
   name: string;
-  address: string;
-  contact: string;
+  joinDate: string;
+  industry: string;
+  businessModel: string;
+  historicalInquiries: number;
+  intendedProducts: string[];
+  location: string;
+  website: string;
 }
 
 // 2. 细分利基市场
