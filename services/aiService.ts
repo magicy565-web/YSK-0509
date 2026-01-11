@@ -2,41 +2,28 @@ import { AnalysisData, StrategyData, DealData, ApiResponse, InfoFormData } from 
 
 const PROMPTS = {
   init: (productName: string, targetCountry: string) => 
-    `你是一个外贸B2B全托管系统的后端 AI。请为产品 \"${productName}\" 分析在 \"${targetCountry}\" 市场的潜力。要求返回纯 JSON 格式, 结构如下: 
+    `你是一个外贸B2B全托管系统的后端 AI。请为产品 \"${productName}\" 分析在 \"${targetCountry}\" 市场的潜力。
+    重要提示：在潜在采购商名录 (potentialBuyers) 中, 请专注于识别独立的、中小型采购商或分销商，避免那些大型的、审核严格的头部公司。这些线索对于小型工厂来说应该是切实可行的。
+    请返回纯 JSON 格式, 结构如下: 
     {
       "potentialBuyers": {
         "total": 150, 
         "top10": [
-          {"name": "Buyer 1", "address": "Address 1", "contact": "Contact 1"},
-          {"name": "Buyer 2", "address": "Address 2", "contact": "Contact 2"},
-          {"name": "Buyer 3", "address": "Address 3", "contact": "Contact 3"},
-          {"name": "Buyer 4", "address": "Address 4", "contact": "Contact 4"},
-          {"name": "Buyer 5", "address": "Address 5", "contact": "Contact 5"},
-          {"name": "Buyer 6", "address": "Address 6", "contact": "Contact 6"},
-          {"name": "Buyer 7", "address": "Address 7", "contact": "Contact 7"},
-          {"name": "Buyer 8", "address": "Address 8", "contact": "Contact 8"},
-          {"name": "Buyer 9", "address": "Address 9", "contact": "Contact 9"},
-          {"name": "Buyer 10", "address": "Address 10", "contact": "Contact 10"}
+          {"name": "Independent Buyer A", "address": "123 Main St, Anytown, USA", "contact": "purchase@buyer-a.com"},
+          {"name": "Regional Distributor B", "address": "456 Oak Ave, Sometown, USA", "contact": "sourcing@distributor-b.net"}
         ]
       },
       "nicheMarkets": [
         {"name": "Niche 1", "volume": "$5M"},
-        {"name": "Niche 2", "volume": "$3M"},
-        {"name": "Niche 3", "volume": "$1.5M"}
+        {"name": "Niche 2", "volume": "$3M"}
       ],
       "topCompetitors": [
-        {"name": "Competitor 1", "website": "www.competitor1.com"},
-        {"name": "Competitor 2", "website": "www.competitor2.com"},
-        {"name": "Competitor 3", "website": "www.competitor3.com"},
-        {"name": "Competitor 4", "website": "www.competitor4.com"},
-        {"name": "Competitor 5", "website": "www.competitor5.com"}
+        {"name": "Competitor 1", "website": "www.competitor1.com", "advantages": ["Specializes in eco-friendly materials", "Strong brand recognition in North America"]},
+        {"name": "Competitor 2", "website": "www.competitor2.com", "advantages": ["Offers lowest prices in the segment", "Wide range of product variations"]}
       ],
       "b2bStrategies": [
-        "Strategy 1",
-        "Strategy 2",
-        "Strategy 3",
-        "Strategy 4",
-        "Strategy 5"
+        "Strategy 1: Focus on niche e-commerce platforms.",
+        "Strategy 2: Offer flexible minimum order quantities (MOQs)."
       ]
     }`,
   start: `请生成营销策略。要求返回纯 JSON 格式：{\"tactic\": \"低价策略\", \"subject\": \"报价单\", \"emailBody\": \"内容...\", \"channels\": [\"Email\"]}`,

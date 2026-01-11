@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, DollarSign, MapPin, Check, TrendingUp, Building, Globe, Briefcase, Target } from 'lucide-react';
+import { Users, DollarSign, MapPin, Check, TrendingUp, Building, Globe, Briefcase, Target, Zap } from 'lucide-react';
 import { AnalysisData } from '../types';
 
 interface StateAnalysisProps {
@@ -36,7 +36,7 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-800">Potential Buyers Directory</h3>
-                <p className="text-slate-500">Total Identified Leads: <span className="font-bold text-green-700">{data.potentialBuyers.total}</span></p>
+                <p className="text-slate-500">Total Identified Leads: <span className="font-bold text-green-700">{data.potentialBuyers.total}</span> (Independent & SMB focus)</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -56,15 +56,25 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
               <div className="p-3 bg-red-100 rounded-full mr-4">
                 <Target className="h-6 w-6 text-red-700" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800">Top 5 Competitors</h3>
+              <h3 className="text-xl font-bold text-slate-800">Top 5 Competitor Analysis</h3>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {data.topCompetitors.map((competitor, index) => (
-                <div key={index} className="flex items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <p className="flex-1 font-semibold text-slate-800">{competitor.name}</p>
-                  <a href={`http://${competitor.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                    {competitor.website}
-                  </a>
+                <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-slate-800 text-base">{competitor.name}</p>
+                    <a href={`http://${competitor.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm font-medium">
+                      {competitor.website}
+                    </a>
+                  </div>
+                  <ul className="space-y-1.5 text-sm text-slate-600">
+                    {competitor.advantages.map((advantage, advIndex) => (
+                      <li key={advIndex} className="flex items-start">
+                        <Zap className="w-4 h-4 mr-2 mt-0.5 text-yellow-500 flex-shrink-0" />
+                        <span>{advantage}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>

@@ -24,6 +24,7 @@ export interface NicheMarket {
 export interface Competitor {
   name: string;
   website: string;
+  advantages: string[]; // Key advantages of the competitor
 }
 
 // Redefined AnalysisData to match the new structure
