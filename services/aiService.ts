@@ -1,137 +1,158 @@
-import { AnalysisData, StrategyData, DealData, ApiResponse, InfoFormData } from '../types';
-import { fetchBuyers } from './buyerService';
+import { AnalysisData, InfoFormData, StrategyData, DealData, ApiResponse } from "../types";
+import { fetchBuyers } from "./buyerService";
 
-const PROMPTS = {
-  init: (productName: string, targetCountry: string) => 
-    `你是一个外贸B2B全托管系统的后端 AI。请为产品 \"${productName}\" 分析在 \"${targetCountry}\" 市场的潜力。
-    请返回纯 JSON 格式, 结构如下: 
-    {
-      "nicheMarkets": [
-        {"name": "Niche 1", "volume": "$5M"},
-        {"name": "Niche 2", "volume": "$3M"}
-      ],
-      "topCompetitors": [
-        {"name": "Competitor 1", "website": "www.competitor1.com", "advantages": ["Specializes in eco-friendly materials", "Strong brand recognition in North America"]},
-        {"name": "Competitor 2", "website": "www.competitor2.com", "advantages": ["Offers lowest prices in the segment", "Wide range of product variations"]}
-      ],
-      "b2bStrategies": [
-        "Strategy 1: Focus on niche e-commerce platforms.",
-        "Strategy 2: Offer flexible minimum order quantities (MOQs)."
-      ]
-    }`,
-  start: `你是一个外贸B2B全托管系统的后端 AI。请为产品生成三种不同的营销策略邮件。要求返回一个包含三个 JSON 对象的数组，每个对象代表一种策略。每个对象结构如下:
-    {
-      "id": "strategy-1",
-      "title": "策略1：OEM工厂通用策略",
-      "description": "介绍工厂，产品，经营范围和资质许可等常规外贸通用熟悉。",
-      "subject": "【询盘】来自[你的公司名]的优质[产品名]供应",
-      "emailBody": "尊敬的采购经理，\\n\\n我们是来自中国的[你的公司名]，一家专业的OEM/ODM工厂...（此处省略详细介绍）"
-    },
-    {
-      "id": "strategy-2",
-      "title": "策略2：免费样品策略",
-      "description": "以提供免费样品为策略，主要围绕产品的介绍。",
-      "subject": "免费样品 | 体验我们的高质量[产品名]",
-      "emailBody": "尊敬的[客户公司名]，\\n\\n您是否正在寻找可靠的[产品名]供应商？我们愿意提供免费样品...（此处省略详细介绍）"
-    },
-    {
-      "id": "strategy-3",
-      "title": "策略3：服务与折扣策略",
-      "description": "以服务和折扣的吸引策略，适用于贸易商的开发信。",
-      "subject": "合作共赢 | [你的公司名]为您提供专属折扣与增值服务",
-      "emailBody": "尊敬的合作伙伴，\\n\\n作为一家领先的贸易商，您一定在寻找能提供稳定利润空间和可靠服务的供应商...（此处省略详细介绍）"
-    }
-  ]`,
-  quote: `你是一个外贸B2B全托管系统的后端 AI。请根据以下信息生成一份报价单。
-    产品: H-Beam
-    客户: Turner Inc.
-
-    要求返回纯 JSON 格式, 结构如下:
-    {
-      "clientName": "Turner Inc.",
-      "clientRating": "AAA",
-      "productName": "H-Beam",
-      "quantity": "500 MT",
-      "unitPrice": "$850",
-      "totalPrice": "$425,000",
-      "shippingCost": "$2,000",
-      "term": "DDP (Delivered Duty Paid)"
-    }`,
+// A mapping of product keywords to their corresponding industries.
+const productToIndustryMap: { [key: string]: string } = {
+  'steel': 'Construction',
+  'rebar': 'Construction',
+  'cement': 'Construction',
+  'gloves': 'Healthcare',
+  'mask': 'Healthcare',
+  'tires': 'Automotive',
+  'fertilizer': 'Agriculture',
+  'chips': 'Technology',
+  'fabric': 'Textiles',
+  'coffee': 'Food & Beverage',
+  'solar': 'Energy',
+  'bearings': 'Manufacturing',
+  'pos': 'Retail',
 };
 
-export const performAction = async (step: 'init' | 'start' | 'quote' | 'sign', formData?: InfoFormData): Promise<ApiResponse> => {
-  if (step === 'sign') {
-    // Simulate a sign-off action
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return { step: 'success', data: null };
+/**
+ * Finds the most likely industry for a given product name.
+ * @param productName The name of the product.
+ * @returns The matched industry or a default value.
+ */
+const getIndustryFromProduct = (productName: string): string => {
+  const lowerCaseProduct = productName.toLowerCase();
+  for (const keyword in productToIndustryMap) {
+    if (lowerCaseProduct.includes(keyword)) {
+      return productToIndustryMap[keyword];
+    }
   }
+  return 'General'; // Default industry if no keyword matches
+};
 
-  let prompt: string;
-  if (step === 'init' && formData) {
-    prompt = PROMPTS.init(formData.productName, formData.targetCountry);
-  } else if (step === 'start' || step === 'quote') {
-    prompt = PROMPTS[step];
-  } else {
-    throw new Error('Invalid step or missing form data for init step');
-  }
+/**
+ * Simulates an AI analyzing the user's input to generate a market analysis.
+ * This function now fetches real, filtered data from the buyer service.
+ * 
+ * @param formData - The user's input from the information form.
+ * @returns A promise that resolves to the analysis data.
+ */
+const getAnalysis = async (formData: InfoFormData): Promise<AnalysisData> => {
+  console.log(`AI Service: Analyzing for product: ${formData.productName}`);
 
-  try {
-    console.log("【Debug】Calling local proxy with prompt:", prompt);
-    
-    const response = await fetch('/api/proxy', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            prompt: prompt,
-            model: "[vertex]gemini-3-pro-preview" 
-        })
-    });
+  // Fetch buyers based on the user-provided product name.
+  const potentialBuyers = await fetchBuyers(formData.productName);
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("【Proxy Error】:", errorData);
-        throw new Error(`API请求失败: ${errorData.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "";
-    
-    const cleanJsonStr = text.replace(/```json|```/g, "").trim();
-    
-    let jsonData;
-    try {
-        jsonData = JSON.parse(cleanJsonStr);
-    } catch (e) {
-        console.error("JSON Parse Error, using fallback.");
-        jsonData = step === 'init' 
-            ? { nicheMarkets: [], topCompetitors: [], b2bStrategies: [], error: "Format Error" }
-            : [];
-    }
-
-    let nextStep = '';
-    let finalData: AnalysisData | StrategyData | DealData | null = jsonData;
-
-    if (step === 'init') {
-      nextStep = 'analysis';
-      // Fetch buyers from Firestore and combine with AI results
-      const buyersData = await fetchBuyers();
-      finalData = {
-        ...jsonData,
-        potentialBuyers: buyersData,
-      };
-    }
-    if (step === 'start') nextStep = 'strategy';
-    if (step === 'quote') nextStep = 'deal';
-
+  // If no buyers are found, return a specific message.
+  if (potentialBuyers.total === 0) {
     return {
-      step: nextStep,
-      data: finalData
+      potentialBuyers,
+      nicheMarkets: [],
+      topCompetitors: [],
+      b2bStrategies: [],
+      error: `No potential buyers found for "${formData.productName}". Try a different product, like "Steel" or "Gloves".`
     };
+  }
 
-  } catch (error: any) {
-    console.error("AI Service Error:", error);
-    throw error;
+  // Dynamically generate other analysis sections based on the fetched data.
+  const industry = getIndustryFromProduct(formData.productName);
+
+  return {
+    potentialBuyers,
+    nicheMarkets: [
+      { name: `High-demand for ${formData.productName} in the ${industry} sector`, volume: "High" },
+      { name: `B2B E-commerce for ${industry} parts`, volume: "Medium" },
+    ],
+    topCompetitors: [
+      { name: "Global Sourcing Inc.", website: "globalsourcing.com", advantages: ["Strong logistics network", "Competitive pricing"] },
+      { name: "SupplyChain Masters", website: "supplychainmasters.com", advantages: ["AI-powered matching", "Excellent customer service"] },
+    ],
+    b2bStrategies: [
+      `Target large distributors in the ${formData.targetCountry} ${industry} market.`,
+      "Develop a strong online presence with a focus on SEO for product keywords.",
+      "Attend major industry trade shows to network with potential buyers.",
+    ],
+  };
+};
+
+
+/**
+ * Simulates an AI generating personalized outreach strategies.
+ * @param analysisData - The market analysis data.
+ * @returns A promise that resolves to the strategy data.
+ */
+const getStrategy = async (analysisData: AnalysisData): Promise<StrategyData> => {
+  // This function can be expanded to generate more dynamic strategies.
+  const topBuyer = analysisData.potentialBuyers.top10[0];
+  if (!topBuyer) return [];
+
+  return [
+    {
+      id: 'cold-email',
+      title: `Cold Email Outreach to ${topBuyer.name}`,
+      description: "Craft a compelling cold email to introduce your products and company.",
+      subject: `Inquiry regarding ${topBuyer.intendedProducts[0]} for ${topBuyer.name}`,
+      emailBody: `Dear Purchasing Manager at ${topBuyer.name},...`,
+    },
+    {
+      id: 'linkedin-outreach',
+      title: `LinkedIn Connection Request to Key Personnel at ${topBuyer.name}`,
+      description: "Connect with key decision-makers on LinkedIn to build a professional relationship.",
+      subject: "", // Not applicable for LinkedIn
+      emailBody: `Hi, I came across ${topBuyer.name} and was impressed by your work in the ${topBuyer.industry} industry. I'd like to connect...`,
+    },
+  ];
+};
+
+/**
+ * Simulates the final step of closing a deal.
+ * @param _strategyData - The chosen strategy.
+ * @returns A promise that resolves to the deal data.
+ */
+const getDeal = async (_strategyData: StrategyData): Promise<DealData> => {
+  // This function can be expanded to be more dynamic.
+  return {
+    clientName: "Global Construction Supplies",
+    clientRating: "A+",
+    productName: "H-Beam Steel",
+    quantity: "1000 tons",
+    unitPrice: "$800/ton",
+    totalPrice: "$800,000",
+    shippingCost: "$50,000",
+    term: "CIF, Port of Houston",
+  };
+};
+
+/**
+ * Main AI service function to handle requests based on the current app state.
+ * @param step - The current step in the application flow.
+ * @param formData - The data from the information form.
+ * @param analysisData - The data from the analysis step.
+ * @param strategyData - The data from the strategy step.
+ * @returns A promise that resolves to the API response for the current step.
+ */
+export const aiService = async (
+  step: string,
+  formData: InfoFormData,
+  analysisData?: AnalysisData,
+  strategyData?: StrategyData
+): Promise<ApiResponse> => {
+  switch (step) {
+    case "analysis":
+      const analysisResult = await getAnalysis(formData);
+      return { step, data: analysisResult };
+    case "strategy":
+      if (!analysisData) throw new Error("Analysis data is required for the strategy step.");
+      const strategyResult = await getStrategy(analysisData);
+      return { step, data: strategyResult };
+    case "deal":
+      if (!strategyData) throw new Error("Strategy data is required for the deal step.");
+      const dealResult = await getDeal(strategyData);
+      return { step, data: dealResult };
+    default:
+      throw new Error(`Invalid step: ${step}`);
   }
 };
