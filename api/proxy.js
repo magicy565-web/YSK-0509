@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   
   // 从环境变量中读取 Key
   const apiKey = process.env.NOVAI_API_KEY;
-  const baseUrl = process.env.NOVAI_BASE_URL || "https://once-cf.novai.su/v1/chat/completions";
+  const baseUrl = "https://api.novai.co/v1/chat/completions"; // Use the standard NovAI endpoint
 
   if (!apiKey) {
     const errorMessage = "Server configuration error: NOVAI_API_KEY is not set in environment variables.";
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: model || "gemini-3-pro-preview",
+        model: model || "gemini-3-pro-preview", // Keep the user's preferred model
         messages: [
            { role: "user", content: prompt }
         ],
