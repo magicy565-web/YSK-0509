@@ -1,6 +1,7 @@
 import React from 'react';
 import { Send, Target, Eye, MessageSquare, Zap } from 'lucide-react';
 import { StrategyData } from '../types';
+import DOMPurify from 'dompurify';
 
 interface StateStrategyProps {
   data: StrategyData;
@@ -8,6 +9,8 @@ interface StateStrategyProps {
 }
 
 export const StateStrategy: React.FC<StateStrategyProps> = ({ data, onSend }) => {
+  const cleanHtml = DOMPurify.sanitize(data.emailBody);
+
   return (
     <div className="max-w-5xl mx-auto py-8 animate-fade-in pb-24 md:pb-8">
        <div className="mb-6">
@@ -73,8 +76,10 @@ export const StateStrategy: React.FC<StateStrategyProps> = ({ data, onSend }) =>
                 </div>
               </div>
               
-              <div className="bg-slate-50 p-6 rounded-lg font-mono text-sm text-slate-700 whitespace-pre-line leading-relaxed border border-slate-100">
-                {data.emailBody}
+              <div 
+                className="bg-slate-50 p-6 rounded-lg font-mono text-sm text-slate-700 whitespace-pre-line leading-relaxed border border-slate-100"
+                dangerouslySetInnerHTML={{ __html: cleanHtml }}
+              >
               </div>
             </div>
 
