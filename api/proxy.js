@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
   // 2. 准备发给 NovAI 的数据
   const { prompt, model } = req.body;
-  
+
   // 从环境变量中读取 Key
   const apiKey = process.env.NOVAI_API_KEY;
   const baseUrl = process.env.NOVAI_BASE_URL || "https://once-cf.novai.su/v1/chat/completions";
@@ -30,9 +30,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // DIAGNOSTIC TEST: Use a common model to see if the channel works at all.
-    const modelToUse = model || "gpt-3.5-turbo";
-    console.log(`[Proxy] Forwarding request to ${baseUrl} using model ${modelToUse}`);
+    console.log(`[Proxy] Forwarding request to ${baseUrl} using model ${model}`);
 
     // 3. 由 Vercel 服务器代发请求 (服务器之间没有 CORS 限制)
     const backendResponse = await fetch(baseUrl, {
@@ -42,7 +40,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: modelToUse,
+        model: model, // Pass the model from the original request
         messages: [
            { role: "user", content: prompt }
         ],
