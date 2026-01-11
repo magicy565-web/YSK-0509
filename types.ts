@@ -7,10 +7,13 @@ export enum AppState {
   SUCCESS = 'success',
 }
 
+// --- UPDATED FOR DUAL-MODE ANALYSIS ---
 export interface InfoFormData {
   productName: string;
   targetCountry: string;
+  analysisType: 'database' | 'ai'; // User's choice of analysis
 }
+// --- END OF UPDATE ---
 
 export interface PotentialBuyer {
   id: string;
@@ -56,8 +59,6 @@ export type StrategyOption = {
 
 export type StrategyData = StrategyOption[];
 
-// --- NEW TYPES FOR STEP 4 ---
-
 export interface ClientCompanyInfo {
   companyName: string;
   contactPerson: string;
@@ -74,13 +75,10 @@ export interface ProductQuotation {
   moq: string;
 }
 
-// DealData is now the commission form
 export interface DealData {
   clientInfo: ClientCompanyInfo;
   quotation: ProductQuotation[];
 }
-
-// --- END OF NEW TYPES ---
 
 export interface ApiResponse {
   step: string;
