@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   
   // 从环境变量中读取 Key
   const apiKey = process.env.NOVAI_API_KEY;
-  const baseUrl = "https://api.novai.co/v1/chat/completions"; // Use the standard NovAI endpoint
+  const baseUrl = process.env.NOVAI_BASE_URL || "https://once-cf.novai.su/v1/chat/completions";
 
   if (!apiKey) {
     const errorMessage = "Server configuration error: NOVAI_API_KEY is not set in environment variables.";
@@ -30,7 +30,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log(`[Proxy] Forwarding request to ${baseUrl} using model ${model}`);
+    // DIAGNOSTIC TEST: Use a common model to see if the channel works at all.
+    const modelToUse = model || "gpt-3.5-turbo";
+    console.log(`[Proxy] Forwarding request to ${baseUrl} using model ${modelToUse}`);
 
     // 3. 由 Vercel 服务器代发请求 (服务器之间没有 CORS 限制)
     const backendResponse = await fetch(baseUrl, {
@@ -40,7 +42,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: model || "gemini-3-pro-preview", // Keep the user's preferred model
+        model: modelToUse,
         messages: [
            { role: "user", content: prompt }
         ],
