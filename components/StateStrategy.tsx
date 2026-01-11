@@ -1,101 +1,151 @@
-import React from 'react';
-import { Send, Target, Eye, MessageSquare, Zap } from 'lucide-react';
-import { StrategyData } from '../types';
-import DOMPurify from 'dompurify';
+import React, { useState, useCallback, ChangeEvent } from 'react';
+import { StrategyData, StrategyOption } from '../types';
+import { Check, Edit, Upload, FileText, Bot, Factory, Gift, Briefcase } from 'lucide-react';
 
 interface StateStrategyProps {
   data: StrategyData;
-  onSend: () => void;
+  onApprove: (selectedStrategy: StrategyOption) => void;
 }
 
-export const StateStrategy: React.FC<StateStrategyProps> = ({ data, onSend }) => {
-  const cleanHtml = DOMPurify.sanitize(data.emailBody);
+const ICONS: { [key: string]: React.ElementType } = {
+  'strategy-1': Factory,
+  'strategy-2': Gift,
+  'strategy-3': Briefcase,
+};
+
+export const StateStrategy: React.FC<StateStrategyProps> = ({ data, onApprove }) => {
+  const [strategies, setStrategies] = useState<StrategyData>(data);
+  const [selectedTab, setSelectedTab] = useState<string>(data[0].id);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+
+  const selectedStrategy = strategies.find(s => s.id === selectedTab)!;
+
+  const handleContentChange = (field: 'subject' | 'emailBody', value: string) => {
+    const newStrategies = strategies.map(s => 
+      s.id === selectedTab ? { ...s, [field]: value } : s
+    );
+    setStrategies(newStrategies);
+  };
+
+  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'text/plain') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        // Assume the first line is the subject
+        const firstLineEnd = content.indexOf('\n');
+        const subject = content.substring(0, firstLineEnd).replace('Subject:', '').trim();
+        const emailBody = content.substring(firstLineEnd + 1).trim();
+        handleContentChange('subject', subject);
+        handleContentChange('emailBody', emailBody);
+        setIsEditing(true); 
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
-    <div className="max-w-5xl mx-auto py-8 animate-fade-in pb-24 md:pb-8">
-       <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">Strategy & Content Review</h2>
-          <p className="text-slate-500">Review the AI-generated outreach plan before mass execution.</p>
-        </div>
+    <div className="max-w-5xl mx-auto py-8 animate-fade-in">
+      {/* Header */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-900">Strategy & Content Review</h2>
+        <p className="text-slate-500 mt-1">Choose and customize your outreach email strategy.</p>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Col: Strategy Details */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <Target className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-slate-900">Core Strategy</h3>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        {/* Left: Tab Navigation */}
+        <div className="md:col-span-1">
+          <div className="sticky top-8">
+             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center">
+                <Bot className="w-4 h-4 mr-2" />
+                AI-Generated Strategies
+            </h3>
+            <div className="space-y-2">
+              {strategies.map(strategy => {
+                const Icon = ICONS[strategy.id] || Factory;
+                return (
+                <button 
+                  key={strategy.id} 
+                  onClick={() => setSelectedTab(strategy.id)}
+                  className={`w-full text-left p-4 rounded-lg border transition-all ${selectedTab === strategy.id ? 'bg-blue-50 border-blue-300 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+                    <div className="flex items-center">
+                        <div className={`p-2 rounded-full mr-3 ${selectedTab === strategy.id ? 'bg-blue-100' : 'bg-slate-100'}`}>
+                            <Icon className={`w-5 h-5 ${selectedTab === strategy.id ? 'text-blue-600' : 'text-slate-500'}`} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-800">{strategy.title}</h4>
+                            <p className="text-xs text-slate-500 mt-1">{strategy.description}</p>
+                        </div>
+                    </div>
+                </button>
+              ) })}
             </div>
-            <p className="text-lg font-medium text-slate-800 leading-snug">{data.tactic}</p>
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Channels</span>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {data.channels.map((channel, idx) => (
-                  <span key={idx} className="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded border border-indigo-100">
-                    {channel}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-amber-50 rounded-xl border border-amber-200 p-5">
-             <div className="flex items-start space-x-3">
-                <Zap className="w-5 h-5 text-amber-600 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-amber-800 text-sm">Why this works?</h4>
-                  <p className="text-xs text-amber-700 mt-1">
-                    AI detected that competitor delivery times have increased by 2 weeks in this region. Emphasizing <b>Lead Time</b> + <b>Price</b> creates urgency.
-                  </p>
-                </div>
-             </div>
           </div>
         </div>
 
-        {/* Right Col: Email Preview */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-sm text-slate-600">
-                <MessageSquare className="w-4 h-4" />
-                <span className="font-medium">Email Preview</span>
-              </div>
-              <div className="flex space-x-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+        {/* Right: Content Display & Edit */}
+        <div className="md:col-span-3">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-800">Email Content Preview</h3>
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="flex items-center text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-colors">
+                  <Upload className="w-4 h-4 mr-1.5" />
+                  Upload TXT
+                </button>
+                <input type="file" accept=".txt" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+
+                <button onClick={() => setIsEditing(!isEditing)} className={`flex items-center text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${isEditing ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  <Edit className="w-4 h-4 mr-1.5" />
+                  {isEditing ? 'Lock Content' : 'Customize'}
+                </button>
               </div>
             </div>
             
-            <div className="p-6">
-              <div className="mb-4 space-y-2">
-                <div className="flex border-b border-slate-100 pb-2">
-                  <span className="text-slate-400 text-sm w-16">Subject:</span>
-                  <span className="text-slate-800 text-sm font-medium">{data.subject}</span>
-                </div>
+            <div className={`p-4 border rounded-lg ${isEditing ? 'border-blue-300 bg-white' : 'border-slate-200 bg-slate-50/80'}`}>
+              <div className="mb-4">
+                <label className="text-xs font-semibold text-slate-500 uppercase">Subject</label>
+                <input 
+                  type="text" 
+                  value={selectedStrategy.subject}
+                  onChange={e => handleContentChange('subject', e.target.value)}
+                  readOnly={!isEditing}
+                  className={`mt-1 w-full p-2 rounded ${isEditing ? 'border border-slate-300 focus:ring-2 focus:ring-blue-300' : 'border-transparent bg-transparent'} text-slate-800 font-semibold transition-all`}
+                />
               </div>
-              
-              <div 
-                className="bg-slate-50 p-6 rounded-lg font-mono text-sm text-slate-700 whitespace-pre-line leading-relaxed border border-slate-100"
-                dangerouslySetInnerHTML={{ __html: cleanHtml }}
-              >
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase">Body</label>
+                <textarea 
+                  value={selectedStrategy.emailBody}
+                  onChange={e => handleContentChange('emailBody', e.target.value)}
+                  readOnly={!isEditing}
+                  className={`mt-1 w-full p-2 rounded ${isEditing ? 'border border-slate-300 focus:ring-2 focus:ring-blue-300' : 'border-transparent bg-transparent'} text-slate-600 leading-relaxed transition-all`}
+                  rows={12}
+                />
               </div>
-            </div>
-
-            <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-end items-center space-x-4">
-              <button className="text-slate-500 text-sm hover:text-slate-800 font-medium transition-colors">
-                Edit Template
-              </button>
-              <button 
-                onClick={onSend}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center font-bold"
-              >
-                <Send className="w-4 h-4 mr-2" />
-                Confirm & Launch Campaign
-              </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-slate-200 p-4 shadow-lg md:static md:shadow-none md:bg-transparent md:border-0 md:p-0 md:mt-12">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between bg-slate-900 text-white p-2 rounded-xl md:pl-8">
+          <div className="text-sm text-slate-300 mb-2 md:mb-0 text-center md:text-left">
+            Choose a strategy and customize the content before launching the outreach.
+          </div>
+          <button
+            onClick={() => onApprove(selectedStrategy)}
+            className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center"
+          >
+            <Check className="w-5 h-5 mr-2" />
+            Confirm Strategy & Launch Outreach
+          </button>
         </div>
       </div>
     </div>

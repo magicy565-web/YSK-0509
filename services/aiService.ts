@@ -26,7 +26,29 @@ const PROMPTS = {
         "Strategy 2: Offer flexible minimum order quantities (MOQs)."
       ]
     }`,
-  start: `请生成营销策略。要求返回纯 JSON 格式：{\"tactic\": \"低价策略\", \"subject\": \"报价单\", \"emailBody\": \"内容...\", \"channels\": [\"Email\"]}`,
+  start: `你是一个外贸B2B全托管系统的后端 AI。请为产品生成三种不同的营销策略邮件。要求返回一个包含三个 JSON 对象的数组，每个对象代表一种策略。每个对象结构如下:
+    {
+      "id": "strategy-1",
+      "title": "策略1：OEM工厂通用策略",
+      "description": "介绍工厂，产品，经营范围和资质许可等常规外贸通用熟悉。",
+      "subject": "【询盘】来自[你的公司名]的优质[产品名]供应",
+      "emailBody": "尊敬的采购经理，\n\n我们是来自中国的[你的公司名]，一家专业的OEM/ODM工厂...（此处省略详细介绍）"
+    },
+    {
+      "id": "strategy-2",
+      "title": "策略2：免费样品策略",
+      "description": "以提供免费样品为策略，主要围绕产品的介绍。",
+      "subject": "免费样品 | 体验我们的高质量[产品名]",
+      "emailBody": "尊敬的[客户公司名]，\n\n您是否正在寻找可靠的[产品名]供应商？我们愿意提供免费样品...（此处省略详细介绍）"
+    },
+    {
+      "id": "strategy-3",
+      "title": "策略3：服务与折扣策略",
+      "description": "以服务和折扣的吸引策略，适用于贸易商的开发信。",
+      "subject": "合作共赢 | [你的公司名]为您提供专属折扣与增值服务",
+      "emailBody": "尊敬的合作伙伴，\n\n作为一家领先的贸易商，您一定在寻找能提供稳定利润空间和可靠服务的供应商...（此处省略详细介绍）"
+    }
+  ]`,
   quote: `请生成报价单。要求返回纯 JSON 格式：{\"clientName\": \"Turner\", \"clientRating\": \"AAA\", \"productName\": \"H-Beam\", \"quantity\": \"500\", \"unitPrice\": \"$850\", \"totalPrice\": \"$425k\", \"shippingCost\": \"$2k\", \"term\": \"DDP\"}`,
 };
 
