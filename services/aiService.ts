@@ -34,37 +34,46 @@ OUTPUT JSON FORMAT (No markdown, just raw JSON):
 }
 `;
 
-// --- 2. API 调用工具 ---
-const callGenAI = async (prompt: string, onChunk?: (text: string) => void): Promise<any> => {
-  try {
-    const response = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // MODIFIED: Switched to a standard OpenAI-compatible model name.
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
-        stream: false
-      }),
-    });
+// --- 2. API 调用工具 (MODIFIED FOR BETTER ERROR HANDLING) ---
+const callGenAI = async (prompt: string): Promise<any> => {
+  const response = await fetch('/api/proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      stream: false
+    }),
+  });
 
-    if (!response.ok) {
-      throw new Error(`API Request Failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    let content = data.choices?.[0]?.message?.content || "";
-    
-    content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    return JSON.parse(content);
-  } catch (error) {
-    console.error("AI Service Error:", error);
-    throw error;
+  // If the response is not OK, we now expect a detailed error from our proxy server.
+  if (!response.ok) {
+    const errorPayload = await response.json(); // Our proxy now forwards the real error
+    // We construct a detailed error message.
+    throw new Error(`[Proxy Error] API request failed with status ${response.status}: ${JSON.stringify(errorPayload)}`);
   }
+
+  const data = await response.json();
+  
+  // Check if the successful response contains an error object (some APIs do this)
+  if (data.error) {
+      throw new Error(`[API Provider Error] ${data.error.message || JSON.stringify(data.error)}`);
+  }
+  
+  let content = data.choices?.[0]?.message?.content || "";
+  
+  // Clean up the response content
+  content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+  
+  // Guard against empty content which would cause JSON.parse to fail
+  if (!content) {
+      throw new Error("Received empty content from AI API.");
+  }
+  
+  return JSON.parse(content);
 };
 
-// --- 3. 业务逻辑导出 ---
+// --- 3. 业务逻辑导出 (MODIFIED FOR BETTER ERROR LOGGING) ---
 export const aiService = {
   getAnalysis: async (
     formData: InfoFormData,
@@ -74,17 +83,29 @@ export const aiService = {
   ) => {
     try {
       console.log(`[AI Analysis] Starting for: ${formData.productName} -> ${formData.targetMarket}`);
-      
       const prompt = generateAnalysisPrompt(formData);
-      
       const result = await callGenAI(prompt);
       
       onChunk(JSON.stringify(result));
       onComplete();
       
     } catch (error: any) {
-      console.error("Analysis Failed:", error);
+      // THIS IS THE CRITICAL NEW LOGGING MECHANISM
+      console.error("======================================================");
+      console.error("🔴 AI ANALYSIS FAILED - DISPLAYING FALLBACK DATA 🔴");
+      console.error("======================================================");
+      console.error("DETAILED ERROR REPORT:");
+      console.error(error); // This will now print the full error from the proxy
+      console.error("------------------------------------------------------");
+      console.error("Since the AI call failed, the application is showing a generic list of buyers.");
+      console.error("Please check the 'DETAILED ERROR REPORT' above to diagnose the issue.");
+      console.error("Common issues include: incorrect API key, invalid model name, or insufficient credits.");
+      console.error("======================================================");
       
+      // We still call the onError callback if it exists
+      onError(error);
+      
+      // Fallback data is triggered
       const fallbackData: AnalysisData = {
         potentialBuyers: {
           total: 850,
