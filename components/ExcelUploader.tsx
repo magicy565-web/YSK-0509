@@ -2,10 +2,10 @@ import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 import { UploadCloud, FileText } from 'lucide-react';
-import { QuotationItem } from '../types';
+import { ProductQuotation } from '../types';
 
 interface ExcelUploaderProps {
-  onDataExtracted: (data: QuotationItem[]) => void;
+  onDataExtracted: (data: ProductQuotation[]) => void;
   onClear: () => void;
 }
 
@@ -22,6 +22,14 @@ type ExcelRow = {
   '最小起订量'?: string | number;
   'MOQ'?: string | number;
   [key: string]: any; // Allow other columns
+};
+
+const parseNumeric = (value: any): number | '' => {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+    const num = parseFloat(String(value));
+    return isNaN(num) ? '' : num;
 };
 
 export const ExcelUploader: React.FC<ExcelUploaderProps> = ({ onDataExtracted, onClear }) => {
@@ -55,13 +63,13 @@ export const ExcelUploader: React.FC<ExcelUploaderProps> = ({ onDataExtracted, o
           return;
         }
 
-        const extractedData: QuotationItem[] = json.map((row, index) => ({
+        const extractedData: ProductQuotation[] = json.map((row, index) => ({
           id: Date.now() + index, // Unique ID for each item
           productName: row['产品名称'] || row['Product Name'] || '',
           model: row['型号'] || row['Model'] || '',
           unit: row['单位'] || row['Unit'] || 'pcs',
-          exwPrice: String(row['出厂单价'] || row['Price'] || ''),
-          moq: String(row['最小起订量'] || row['MOQ'] || ''),
+          exwPrice: parseNumeric(row['出厂单价'] || row['Price']),
+          moq: parseNumeric(row['最小起订量'] || row['MOQ']),
         }));
         
         onDataExtracted(extractedData);

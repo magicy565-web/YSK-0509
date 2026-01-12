@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DealData, ProductQuotation, QuotationItem } from '../types';
+import { DealData, ProductQuotation } from '../types';
 import { FiPlusCircle, FiTrash2 } from 'react-icons/fi';
 import { ExcelUploader } from './ExcelUploader';
 
@@ -18,9 +18,18 @@ export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
 
   const handleQuotationChange = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const updatedQuotation = dealData.quotation.map(item =>
-      item.id === id ? { ...item, [name]: value } : item
-    );
+    const updatedQuotation = dealData.quotation.map(item => {
+      if (item.id === id) {
+        if (name === 'exwPrice' || name === 'moq') {
+          // Allow empty string, otherwise parse to float
+          const numericValue = value === '' ? '' : parseFloat(value);
+          return { ...item, [name]: numericValue };
+        } else {
+          return { ...item, [name]: value };
+        }
+      }
+      return item;
+    });
     setDealData(prev => ({ ...prev, quotation: updatedQuotation }));
   };
 
@@ -47,11 +56,20 @@ export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
     }
   };
 
-  const handleDataExtracted = (extractedData: QuotationItem[]) => {
-    if (extractedData.length > 0) {
-      setDealData(prev => ({ ...prev, quotation: extractedData }));
+  const handleDataExtracted = (extractedData: ProductQuotation[]) => {
+    const formattedData: ProductQuotation[] = extractedData.map((item, index) => ({
+        id: Date.now() + index,
+        productName: item.productName || '',
+        model: item.model || '',
+        unit: item.unit || 'pcs',
+        exwPrice: typeof item.exwPrice === 'number' ? item.exwPrice : '',
+        moq: typeof item.moq === 'number' ? item.moq : '',
+    }));
+
+    if (formattedData.length > 0) {
+        setDealData(prev => ({ ...prev, quotation: formattedData }));
     } else {
-      setDealData(prev => ({ ...prev, quotation: [createEmptyProduct()] }));
+        setDealData(prev => ({ ...prev, quotation: [createEmptyProduct()] }));
     }
   };
   
@@ -105,8 +123,8 @@ export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
                   <td className="px-4 py-2"><input type="text" name="productName" value={item.productName} onChange={(e) => handleQuotationChange(item.id, e)} className="w-full p-1 border rounded-md" /></td>
                   <td className="px-4 py-2"><input type="text" name="model" value={item.model} onChange={(e) => handleQuotationChange(item.id, e)} className="w-full p-1 border rounded-md" /></td>
                   <td className="px-4 py-2"><input type="text" name="unit" value={item.unit} onChange={(e) => handleQuotationChange(item.id, e)} className="w-20 p-1 border rounded-md" /></td>
-                  <td className="px-4 py-2"><input type="text" name="exwPrice" value={item.exwPrice} onChange={(e) => handleQuotationChange(item.id, e)} className="w-28 p-1 border rounded-md" /></td>
-                  <td className="px-4 py-2"><input type="text" name="moq" value={item.moq} onChange={(e) => handleQuotationChange(item.id, e)} className="w-24 p-1 border rounded-md" /></td>
+                  <td className="px-4 py-2"><input type="number" name="exwPrice" value={item.exwPrice} onChange={(e) => handleQuotationChange(item.id, e)} className="w-28 p-1 border rounded-md" /></td>
+                  <td className="px-4 py-2"><input type="number" name="moq" value={item.moq} onChange={(e) => handleQuotationChange(item.id, e)} className="w-24 p-1 border rounded-md" /></td>
                   <td className="px-4 py-2 text-center">
                     <button onClick={() => removeProduct(item.id)} className="text-slate-400 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled={dealData.quotation.length <= 1}>
                         <FiTrash2 />

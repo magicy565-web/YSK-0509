@@ -1,65 +1,96 @@
-// api/proxy.js
-// 这是一个运行在 Vercel 服务器端的函数，专门用来绕过 CORS
-export default async function handler(req, res) {
-  // 1. 设置允许跨域的头 (让浏览器不报错)
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+export const config = {
+  runtime: 'edge',
+};
 
-  // 处理预检请求 (浏览器自动发的探测包)
+// A more robust proxy for NovAI with streaming and better error handling
+export default async function handler(req) {
+  // 1. Handle preflight requests for CORS
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   }
 
-  // 2. 准备发给 NovAI 的数据
-  const { prompt, model } = req.body;
+  // 2. Basic validation
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
-  // 从环境变量中读取 Key
+  // 3. Get API Key and Base URL from environment variables
   const apiKey = process.env.NOVAI_API_KEY;
   const baseUrl = process.env.NOVAI_BASE_URL || "https://once-cf.novai.su/v1/chat/completions";
 
   if (!apiKey) {
-    const errorMessage = "Server configuration error: NOVAI_API_KEY is not set in environment variables.";
-    console.error(`[Proxy Error] ${errorMessage}`);
-    return res.status(500).json({ error: errorMessage });
+    console.error('[Proxy Error] NOVAI_API_KEY is not set.');
+    return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    console.log(`[Proxy] Forwarding request to ${baseUrl} using model ${model}`);
+    // 4. Parse request body and validate
+    const { model, messages, stream } = await req.json();
 
-    // 3. 由 Vercel 服务器代发请求 (服务器之间没有 CORS 限制)
+    if (!model || !messages) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: model and messages' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`[Proxy] Forwarding request to ${baseUrl}. Model: ${model}, Stream: ${stream}`);
+
+    // 5. Forward the request to the NovAI backend
     const backendResponse = await fetch(baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: model, // Pass the model from the original request
-        messages: [
-           { role: "user", content: prompt }
-        ],
-        temperature: 0.7
-      })
+      body: JSON.stringify({ model, messages, stream, temperature: 0.7 }),
     });
 
-    const data = await backendResponse.json();
-
-    // 4. 把结果原封不动地还给前端
-    if (!backendResponse.ok) {
-        console.error("[Proxy Error]", data);
-        return res.status(backendResponse.status).json(data);
+    // 6. Handle streaming or non-streaming responses
+    if (stream && backendResponse.body) {
+        // If streaming, pipe the response body directly to our response
+        return new Response(backendResponse.body, {
+            status: backendResponse.status,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'text/event-stream; charset=utf-8',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
+        });
+    } else {
+        // If not streaming, parse the JSON and return it
+        const data = await backendResponse.json();
+        return new Response(JSON.stringify(data), {
+            status: backendResponse.status,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+            },
+        });
     }
-    
-    return res.status(200).json(data);
 
   } catch (error) {
     console.error("[Server Error]", error);
-    return res.status(500).json({ error: "Proxy Failed", details: error.message });
+    return new Response(JSON.stringify({ error: "Proxy failed", details: error.message }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }

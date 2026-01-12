@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { InfoForm } from './components/InfoForm';
 import { StateAnalysis } from './components/StateAnalysis';
@@ -24,7 +24,7 @@ function App() {
   const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
-  const [error, setError] = useState<string | null>(null); // New state for error handling
+  const [error, setError] = useState<string | null>(null);
   
   // Data holders
   const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null);
@@ -32,25 +32,41 @@ function App() {
   const [strategyData, setStrategyData] = useState<StrategyData | null>(null);
   const [dealData, setDealData] = useState<DealData | null>(null);
 
+  // For streaming data
+  const [streamedAnalysis, setStreamedAnalysis] = useState("");
+  const [streamedStrategy, setStreamedStrategy] = useState("");
+
   const handleFormSubmit = async (formData: InfoFormData) => {
     setIsLoading(true);
     setLoadingMessage('AI正在扫描全球市场需求...');
     setInfoFormData(formData);
     setError(null);
+    setStreamedAnalysis("");
     
-    try {
-      const response = await aiService('analysis', formData);
-      if (response.data) {
-        setAnalysisData(response.data as AnalysisData);
+    aiService.getAnalysis(formData, 
+      (chunk) => setStreamedAnalysis(prev => prev + chunk), 
+      () => {
+        setIsLoading(false);
         setCurrentState(AppState.ANALYSIS);
+      },
+      (err) => {
+        console.error(err);
+        setError(`AI市场分析失败: ${err.message}`);
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      console.error(err);
-      setError(`AI市场分析失败: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
+    );
   };
+
+  useEffect(() => {
+    if (streamedAnalysis) {
+      try {
+        const parsed = JSON.parse(streamedAnalysis);
+        setAnalysisData(parsed);
+      } catch (e) {
+        // Not a complete JSON object yet, do nothing
+      }
+    }
+  }, [streamedAnalysis]);
 
   const handleApproveAnalysis = async () => {
     if (!infoFormData || !analysisData) return;
@@ -58,20 +74,32 @@ function App() {
     setIsLoading(true);
     setLoadingMessage('正在生成开发策略与开发信...');
     setError(null);
+    setStreamedStrategy("");
 
-    try {
-      const response = await aiService('strategy', infoFormData, analysisData);
-      if (response.data) {
-        setStrategyData(response.data as StrategyData);
+    aiService.getStrategy(infoFormData, analysisData, 
+      (chunk) => setStreamedStrategy(prev => prev + chunk),
+      () => {
+        setIsLoading(false);
         setCurrentState(AppState.STRATEGY);
-      }
-    } catch (err: any) {
+      },
+      (err) => {
         console.error(err);
         setError(`生成开发策略失败: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
+        setIsLoading(false);
+      }
+    );
   };
+
+  useEffect(() => {
+    if (streamedStrategy) {
+      try {
+        const parsed = JSON.parse(streamedStrategy);
+        setStrategyData(parsed);
+      } catch (e) {
+        // Not a complete JSON object yet
+      }
+    }
+  }, [streamedStrategy]);
 
   const handleStrategyApproved = async (selectedStrategy: StrategyOption) => {
     if (!infoFormData) return;
@@ -81,12 +109,9 @@ function App() {
     setError(null);
 
     try {
-      // Corrected: The 'deal' step in aiService only requires formData.
-      const response = await aiService('deal', infoFormData);
-      if (response.data) {
-        setDealData(response.data as DealData);
-        setCurrentState(AppState.DEAL);
-      }
+      const deal = await aiService.getDeal(infoFormData);
+      setDealData(deal);
+      setCurrentState(AppState.DEAL);
     } catch (err: any) {
         console.error(err);
         setError(`创建委托失败: ${err.message}`);
@@ -110,7 +135,6 @@ function App() {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         
-        {/* Display error if it exists */}
         {error && <ErrorDisplay message={error} onClose={() => setError(null)} />}
 
         {currentState !== AppState.SUCCESS && (

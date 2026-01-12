@@ -71,8 +71,8 @@ export interface ProductQuotation {
   productName: string;
   model: string;
   unit: string;
-  exwPrice: string;
-  moq: string;
+  exwPrice: number | '';
+  moq: number | '';
 }
 
 export interface DealData {
