@@ -1,177 +1,166 @@
 
 import React, { useState } from 'react';
-import { DealData, ProductQuotation, FactoryQualification } from '../types';
-import { UploadCloud, PlusCircle, Trash2, Check, AlertTriangle, Briefcase, DollarSign, Globe, Award, Factory } from 'lucide-react';
+import { DealData, FactoryQualification, SuccessCase, InfoFormData } from '../types'; 
+import { ArrowRight, CheckCircle, ImagePlus, Package, ShieldCheck, UserCheck, Zap } from 'lucide-react';
 
-interface Props {
-  data: DealData;
-  onApprove: (finalDealData: DealData) => void;
+// --- Mock Data ---
+const liveStats = { matchedAmount: 2.4, activeBuyers: 342, waitingDemands: 18 };
+const base64Placeholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+// --- CRITICAL NARRATIVE FIX (v2.3) ---
+// The success stories now BOTH align with the matchmaking SOP presented in StateStrategy.
+const successStories: SuccessCase[] = [
+  {
+    id: 'case-1',
+    title: '广东中山灯具厂 → 美国 Home Depot 供应商',
+    tags: ['灯具照明', '美国', '首单$12k'],
+    imageUrl: base64Placeholder,
+    description: '通过平台快速匹配，2周内拿下了美国知名建材零售商的试单，解决了传统渠道开发客户慢的难题。',
+    metrics: [{ label: '匹配周期', value: '2周' }, { label: '合作买家', value: '美国头部零售商' }],
+  },
+  {
+    id: 'case-2',
+    // MODIFIED: Replaced "Full-service operation" with a story about market entry via matchmaking.
+    title: '河北沧州管件厂 → 俄罗斯新市场',
+    tags: ['管道配件', '俄罗斯', '精准匹配'],
+    imageUrl: base64Placeholder,
+    description: '工厂虽有外贸团队，但一直无法打入俄罗斯市场。通过我们对买家需求的精准分析，成功匹配并签约了第一家当地大型分销商。',
+    metrics: [{ label: '核心价值', value: '打破市场壁垒' }, { label: '关键成果', value: '签约新区域分销商' }],
+  },
+];
+
+// --- Sub-Components ---
+const TrustBadge = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
+  <div className="flex items-center text-sm text-slate-300"><span className="text-emerald-500 mr-2">{icon}</span>{text}</div>
+);
+
+const SuccessStoryCard = ({ story }: { story: SuccessCase }) => (
+    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 hover:border-emerald-500 transition-all">
+      <h4 className="font-bold text-emerald-400">{story.title}</h4>
+      <p className="text-sm text-slate-300 mt-1 mb-3">{story.description}</p>
+      <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex space-x-2">
+            {story.tags.map(tag => <span key={tag} className="bg-slate-700 px-2 py-0.5 rounded">{tag}</span>)}
+          </div>
+      </div>
+    </div>
+  );
+
+// --- Main StateDeal Component ---
+
+interface StateDealProps {
+  initialFormData: InfoFormData;
+  onApprove: (data: DealData) => void;
 }
 
-// Helper to create an empty product row.
-const createEmptyProduct = (): ProductQuotation => ({
-  id: Date.now(),
-  productName: '',
-  model: '',
-  unit: 'pcs',
-  exwPrice: '',
-  moq: '',
-  leadTime: '',
-});
+export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove }) => {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState<FactoryQualification>({
+    companyName: '',
+    contactPerson: '',
+    position: 'manager',
+    hasExportRights: null,
+    accepts30PercentDeposit: null,
+    factoryPicture: null,
+  });
 
-export const StateDeal: React.FC<Props> = ({ data, onApprove }) => {
-  const [factoryInfo, setFactoryInfo] = useState<FactoryQualification>(data.factoryInfo);
-  const [quotation, setQuotation] = useState<ProductQuotation[]>(data.quotation.length > 0 ? data.quotation : [createEmptyProduct()]);
-
-  const handleFactoryInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFactoryInfo(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-  };
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setFactoryInfo(prev => ({ ...prev, certificates: files }));
-    }
-  };
-
-  const handleQuotationChange = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const updatedQuotation = quotation.map(item => 
-        item.id === id ? { ...item, [name]: value } : item
-    );
-    setQuotation(updatedQuotation);
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const addProduct = () => {
-    setQuotation(prev => [...prev, createEmptyProduct()]);
-  };
-
-  const removeProduct = (id: number) => {
-    if (quotation.length > 1) {
-      setQuotation(prev => prev.filter(item => item.id !== id));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormData(prev => ({ ...prev, factoryPicture: e.target.files![0] }));
     }
   };
 
-  const handleSubmit = () => {
-    onApprove({ factoryInfo, quotation });
+  const canGoToStep2 = formData.companyName && formData.contactPerson && formData.position;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onApprove(formData);
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-8 animate-fade-in-up">
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-slate-900">供应商资质审核</h2>
-        <p className="text-slate-500 mt-2 text-lg">为确保买家获得高质量的对接服务，我们需要对供应商进行简单的资质审核。请提供以下信息。</p>
-      </div>
+    <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-xl shadow-2xl">
+      <div className="flex flex-col md:flex-row gap-8 md:gap-12">
+        
+        {/* Left Side: The Pitch */}
+        <div className="md:w-1/2 flex flex-col">
+          <h1 className="text-3xl font-bold text-emerald-400 leading-tight">加入优选供应商网络，<br/>与全球 500+ 顶尖买家建立连接</h1>
+          <p className="text-slate-300 mt-4 mb-6">我们已帮助数百家像您一样的工厂成功出海。现在，轮到您了。</p>
 
-      {/* Main form grid */}
-      <div className="space-y-12">
-        {/* Section 1: Basic Info */}
-        <div className="border-b border-slate-200 pb-12">
-          <h3 className="text-xl font-semibold text-slate-800 flex items-center mb-6"><Factory className="w-6 h-6 mr-3 text-slate-500" /> 公司基本信息</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <input type="text" name="companyName" placeholder="公司名称" value={factoryInfo.companyName} onChange={handleFactoryInfoChange} className="p-3 border rounded-md" />
-            <input type="text" name="website" placeholder="官方网站 (例如 https://yourcompany.com)" value={factoryInfo.website} onChange={handleFactoryInfoChange} className="p-3 border rounded-md" />
-            <input type="text" name="contactPerson" placeholder="联系人" value={factoryInfo.contactPerson} onChange={handleFactoryInfoChange} className="p-3 border rounded-md" />
+          <div className="grid grid-cols-3 gap-4 bg-slate-800/50 p-4 rounded-lg mb-6 text-center">
+            <div><p className="text-3xl font-bold">${liveStats.matchedAmount}M</p><p className="text-xs text-slate-400">本月已撮合订单</p></div>
+            <div><p className="text-3xl font-bold">{liveStats.activeBuyers}</p><p className="text-xs text-slate-400">活跃采购商</p></div>
+            <div><p className="text-3xl font-bold">{liveStats.waitingDemands}</p><p className="text-xs text-slate-400">待匹配需求</p></div>
           </div>
-        </div>
 
-        {/* Section 2: Strength & Qualification */}
-        <div className="border-b border-slate-200 pb-12">
-          <h3 className="text-xl font-semibold text-slate-800 flex items-center mb-6"><Award className="w-6 h-6 mr-3 text-slate-500"/> 实力与资质</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">年出口额 (美元)</label>
-                <input type="text" name="annualExportValue" placeholder="例如, 5,000,000" value={factoryInfo.annualExportValue} onChange={handleFactoryInfoChange} className="p-3 w-full border rounded-md" />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">核心产品优势</label>
-                <input type="text" name="mainProductAdvantage" placeholder="例如, 专利设计, 更优的材料..." value={factoryInfo.mainProductAdvantage} onChange={handleFactoryInfoChange} className="p-3 w-full border rounded-md" />
-            </div>
-            <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">上传资质文件 (例如 ISO, CE, 营业执照)</label>
-                <div className="mt-2 flex justify-center items-center w-full h-32 px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-md">
-                    <div className="space-y-1 text-center">
-                        <UploadCloud className="mx-auto h-12 w-12 text-slate-400" />
-                        <div className="flex text-sm text-slate-600">
-                            <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none">
-                                <span>上传文件</span>
-                                <input id="file-upload" name="certificates" type="file" multiple className="sr-only" onChange={handleFileChange} />
-                            </label>
-                            <p className="pl-1">或拖拽到此处</p>
-                        </div>
-                        <p className="text-xs text-slate-500">支持 PNG, JPG, PDF, 单个文件最大10MB</p>
-                        {factoryInfo.certificates && factoryInfo.certificates.length > 0 && <p className='text-xs text-emerald-600 pt-1'>{factoryInfo.certificates.length} 个文件已选择。</p>}
-                    </div>
-                </div>
-            </div>
+          <h3 className="font-bold text-lg text-white mb-3 border-b border-slate-700 pb-2">近期成功案例</h3>
+          <div className="space-y-4">
+            {successStories.map(story => <SuccessStoryCard key={story.id} story={story} />)}
           </div>
+
+           <div className="mt-auto pt-8 grid grid-cols-3 gap-4 text-center">
+             <TrustBadge icon={<UserCheck />} text="真实买家验证" />
+             <TrustBadge icon={<ShieldCheck />} text="交易资金担保" />
+             <TrustBadge icon={<Zap />} text="对供应商永久免费" />
+           </div>
         </div>
 
-        {/* Section 3: Quotation */}
-        <div className="border-b border-slate-200 pb-12">
-            <h3 className="text-xl font-semibold text-slate-800 flex items-center mb-6"><DollarSign className="w-6 h-6 mr-3 text-slate-500"/> 产品报价</h3>
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
-                    <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">产品名</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">型号</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">最小订单量(MOQ)</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">出厂价(EXW USD)</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">交货期</th>
-                        <th className="w-12"></th>
-                    </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-200">
-                    {quotation.map((item) => (
-                        <tr key={item.id}>
-                            <td><input type="text" name="productName" value={item.productName} onChange={(e) => handleQuotationChange(item.id, e)} className="w-full p-2 border rounded-md" /></td>
-                            <td><input type="text" name="model" value={item.model} onChange={(e) => handleQuotationChange(item.id, e)} className="w-full p-2 border rounded-md" /></td>
-                            <td><input type="number" name="moq" value={item.moq} onChange={(e) => handleQuotationChange(item.id, e)} className="w-24 p-2 border rounded-md" /></td>
-                            <td><input type="number" name="exwPrice" value={item.exwPrice} onChange={(e) => handleQuotationChange(item.id, e)} className="w-28 p-2 border rounded-md" /></td>
-                            <td><input type="text" name="leadTime" placeholder="例如, 15 天" onChange={(e) => handleQuotationChange(item.id, e)} className="w-28 p-2 border rounded-md" /></td>
-                            <td>
-                                <button onClick={() => removeProduct(item.id)} className="text-slate-400 hover:text-red-500 disabled:opacity-50" disabled={quotation.length <= 1}>
-                                    <Trash2 className="w-4 h-4"/>
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
-            <button onClick={addProduct} className="mt-4 flex items-center text-sm text-emerald-600 hover:text-emerald-800">
-                <PlusCircle className="mr-2 w-4 h-4" /> 添加产品
-            </button>
-        </div>
-
-        {/* Section 4: Commitment & Submission */}
-        <div>
-            <div className="flex items-start mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <AlertTriangle className="h-5 w-5 text-yellow-500 mr-3 flex-shrink-0 mt-0.5" />
+        {/* Right Side: The Conversion Form */}
+        <div className="md:w-1/2 bg-slate-800 p-6 rounded-lg border border-slate-700">
+          
+          <div className="bg-slate-700/50 p-4 rounded-lg mb-6">
+              <p className="text-sm text-slate-400 flex items-center"><Package className="w-4 h-4 mr-2"/>您申请匹配的产品</p>
+              <h3 className="font-bold text-lg text-emerald-400">{initialFormData.productName}</h3>
+              <p className="text-xs text-slate-300 mt-1 line-clamp-2">优势: {initialFormData.productDetails}</p>
+          </div>
+          
+          <h2 className="font-bold text-xl text-center">完善您的企业资质</h2>
+          <p className="text-center text-sm text-emerald-400 font-semibold mb-6">最后一步，即可免费对接买家 (今日剩余 3 席)</p>
+          
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: step === 1 ? 'block' : 'none' }}>
+              <h3 className="font-semibold mb-4 text-slate-300">第一步: 基础信息</h3>
+              <div className="space-y-4">
                 <div>
-                    <h4 className="font-semibold text-yellow-800">最后一步：确认承诺</h4>
-                    <div className="flex items-start mt-2">
-                        <input id="hasCommitment" name="hasCommitment" type="checkbox" checked={factoryInfo.hasCommitment} onChange={handleFactoryInfoChange} className="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 mt-1" />
-                        <label htmlFor="hasCommitment" className="ml-3 block text-sm text-yellow-700">
-                            我在此承诺，所提供的所有信息均真实有效，并授权平台将这些信息独家用于买家匹配目的。
-                        </label>
-                    </div>
+                  <label htmlFor="companyName" className="block text-sm font-medium text-slate-400 mb-1">公司名称</label>
+                  <input type="text" name="companyName" id="companyName" value={formData.companyName} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder='例如：XX电子科技有限公司' required />
                 </div>
+                <div>
+                  <label htmlFor="contactPerson" className="block text-sm font-medium text-slate-400 mb-1">联系人姓名</label>
+                  <input type="text" name="contactPerson" id="contactPerson" value={formData.contactPerson} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2" placeholder='您的姓名' required />
+                </div>
+                <div>
+                  <label htmlFor="position" className="block text-sm font-medium text-slate-400 mb-1">您的职位</label>
+                  <select name="position" id="position" value={formData.position} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2">
+                    <option value="owner">公司法人/股东</option>
+                    <option value="manager">外贸经理/业务主管</option>
+                    <option value="other">其他</option>
+                  </select>
+                </div>
+              </div>
+              <button type="button" onClick={() => setStep(2)} disabled={!canGoToStep2} className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 font-bold py-2 px-4 rounded-md transition-all disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center">下一步 <ArrowRight className="w-4 h-4 ml-2" /></button>
             </div>
-            
-            <div className="text-center">
-                <button
-                    onClick={handleSubmit}
-                    disabled={!factoryInfo.hasCommitment}
-                    className="w-full md:w-auto bg-emerald-600 text-white font-bold py-4 px-12 rounded-lg shadow-lg transition-all flex items-center justify-center mx-auto disabled:bg-slate-400 disabled:cursor-not-allowed disabled:shadow-none hover:bg-emerald-700"
-                >
-                    <Check className="w-5 h-5 mr-2" />
-                    提交资质审核，获取免费买家匹配
-                </button>
-                <p className="text-xs text-slate-500 mt-3">我们的团队将在 2 个工作日内审核您的申请。</p>
+
+            <div style={{ display: step === 2 ? 'block' : 'none' }}>
+              <h3 className="font-semibold mb-4 text-slate-300">第二步: 实力自证</h3>
+              <div className="space-y-5">
+                 <div className="p-3 bg-slate-700/50 rounded-md"><p className="block text-sm font-medium text-slate-400 mb-2">贵司有自主出口权吗？</p><div className="flex gap-4"><button type="button" onClick={() => setFormData(p=>({...p, hasExportRights: true}))} className={`flex-1 p-2 rounded text-sm ${formData.hasExportRights === true ? 'bg-emerald-500' : 'bg-slate-600'}`}>有</button><button type="button" onClick={() => setFormData(p=>({...p, hasExportRights: false}))} className={`flex-1 p-2 rounded text-sm ${formData.hasExportRights === false ? 'bg-rose-500' : 'bg-slate-600'}`}>没有，需代理</button></div></div>
+                 <div className="p-3 bg-slate-700/50 rounded-md"><p className="block text-sm font-medium text-slate-400 mb-2">能否接受 30% 预付款？</p><div className="flex gap-4"><button type="button" onClick={() => setFormData(p=>({...p, accepts30PercentDeposit: true}))} className={`flex-1 p-2 rounded text-sm ${formData.accepts30PercentDeposit === true ? 'bg-emerald-500' : 'bg-slate-600'}`}>能接受</button><button type="button" onClick={() => setFormData(p=>({...p, accepts30PercentDeposit: false}))} className={`flex-1 p-2 rounded text-sm ${formData.accepts30PercentDeposit === false ? 'bg-rose-500' : 'bg-slate-600'}`}>希望调整</button></div></div>
+                 <div>
+                    <label htmlFor="factoryPicture" className="w-full cursor-pointer bg-slate-700/50 p-4 rounded-md flex flex-col items-center justify-center border-2 border-dashed border-slate-600 hover:border-emerald-500"><ImagePlus className="w-8 h-8 text-slate-400 mb-2" /><span className="text-sm text-slate-300">上传工厂/车间实拍图</span><span className="text-xs text-slate-500 mt-1">有图的供应商将获优先匹配</span><input type="file" id="factoryPicture" name="factoryPicture" onChange={handleFileChange} className="hidden" accept="image/*" /></label>
+                    {formData.factoryPicture && <p className="text-xs text-emerald-400 mt-2 text-center">已选择文件: {formData.factoryPicture.name}</p>}
+                 </div>
+              </div>
+              <button type="submit" className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 font-bold py-3 px-4 rounded-lg transition-all text-base shadow-[0_0_15px_rgba(34,197,94,0.5)] hover:shadow-[0_0_25px_rgba(34,197,94,0.8)]">提交资质，获取买家联系方式</button>
+               <p className="text-xs text-slate-400 mt-2 text-center">提交后，专属顾问将在24小时内联系您进行核验。</p>
+               <button type="button" onClick={() => setStep(1)} className="text-center w-full text-xs text-slate-500 mt-4 hover:text-slate-300">返回上一步</button>
             </div>
+
+          </form>
         </div>
       </div>
     </div>

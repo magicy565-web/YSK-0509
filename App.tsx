@@ -8,7 +8,8 @@ import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
 import { aiService } from './services/aiService';
-import { AppState, AnalysisData, DealData, InfoFormData, ProductQuotation } from './types';
+// BUG FIX: Removed unused ProductQuotation, updated DealData to be FactoryQualification
+import { AppState, AnalysisData, DealData, FactoryQualification, InfoFormData } from './types';
 
 const ErrorDisplay = ({ message, onClose }: { message: string, onClose: () => void }) => (
   <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
@@ -20,27 +21,8 @@ const ErrorDisplay = ({ message, onClose }: { message: string, onClose: () => vo
   </div>
 );
 
-const createEmptyProduct = (productName: string = ''): ProductQuotation => ({
-  id: Date.now(),
-  productName,
-  model: '',
-  unit: 'pcs',
-  exwPrice: '',
-  moq: '',
-  leadTime: '',
-});
-
-const initialDealData: DealData = {
-  factoryInfo: {
-    companyName: '',
-    website: '',
-    contactPerson: '',
-    annualExportValue: '',
-    mainProductAdvantage: '',
-    hasCommitment: false,
-  },
-  quotation: [createEmptyProduct()],
-};
+// BUG FIX: Removed obsolete initialDealData and related functions.
+// The state for the deal form is now managed within StateDeal.tsx itself.
 
 function App() {
   const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
@@ -48,15 +30,17 @@ function App() {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   
+  // This state holds the data from the very first form (product info).
   const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
-  const [dealData, setDealData] = useState<DealData>(initialDealData);
+  // This state will hold the final data from the Deal/Qualification form.
+  const [dealData, setDealData] = useState<DealData | null>(null);
   const [streamedAnalysis, setStreamedAnalysis] = useState("");
 
   const handleFormSubmit = async (formData: InfoFormData) => {
     setIsLoading(true);
     setLoadingMessage('AI正在分析全球市场匹配度...');
-    setInfoFormData(formData);
+    setInfoFormData(formData); // Save the initial form data
     setError(null);
     setStreamedAnalysis("");
     
@@ -79,7 +63,7 @@ function App() {
       try {
         const parsed = JSON.parse(streamedAnalysis);
         setAnalysisData(parsed);
-      } catch (e) { /* Incomplete JSON */ }
+      } catch (e) { /* Incomplete JSON, wait for more data */ }
     }
   }, [streamedAnalysis]);
 
@@ -101,17 +85,8 @@ function App() {
     );
   };
 
-  // BUG FIX 1: Use `dealData.quotation` to access the array.
-  // BUG FIX 2: Update state based on current `dealData`, not `initialDealData`.
+  // BUG FIX: Simplified this function. Its only job is to move to the next state.
   const handleStrategyApproved = () => {
-    const productName = infoFormData?.productName || '';
-    const currentQuotation = dealData.quotation.length > 0 ? dealData.quotation : [createEmptyProduct()];
-    
-    const newQuotation = currentQuotation.map((item, index) => 
-      index === 0 ? { ...item, productName } : item
-    );
-
-    setDealData(prevData => ({ ...prevData, quotation: newQuotation }));
     setCurrentState(AppState.DEAL);
   };
 
@@ -122,6 +97,7 @@ function App() {
       setError(null);
 
       try {
+        // Assuming aiService.submitApplication is updated to handle the new DealData format
         await aiService.submitApplication(finalDealData);
         setCurrentState(AppState.SUCCESS);
       } catch (err: any) {
@@ -140,9 +116,21 @@ function App() {
         {error && <ErrorDisplay message={error} onClose={() => setError(null)} />}
 
         {currentState === AppState.FORM && <InfoForm onSubmit={handleFormSubmit} />}
+        
         {currentState === AppState.ANALYSIS && analysisData && <StateAnalysis data={analysisData} onApprove={handleApproveAnalysis} />}
+        
         {currentState === AppState.STRATEGY && <StateStrategy onApprove={handleStrategyApproved} />}
-        {currentState === AppState.DEAL && dealData && <StateDeal data={dealData} onApprove={handleApproveDeal} />}
+        
+        {/* --- CRITICAL FIX --- */}
+        {/* Render StateDeal ONLY when in DEAL state AND we have the initial form data. */}
+        {/* Pass the initial form data to StateDeal to connect the user journey. */}
+        {currentState === AppState.DEAL && infoFormData && (
+          <StateDeal 
+            initialFormData={infoFormData} 
+            onApprove={handleApproveDeal} 
+          />
+        )}
+        
         {currentState === AppState.SUCCESS && <SuccessState />}
       </main>
 

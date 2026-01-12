@@ -1,8 +1,8 @@
 
-import { InfoFormData, AnalysisData, DealData } from "./types";
+// BUG FIX: Updated imports to reflect the new v2.1 data structures.
+import { InfoFormData, AnalysisData, DealData, FactoryQualification } from "./types";
 
 const streamResponse = async (text: string, onChunk: (chunk: string) => void) => {
-  // Simulate a streaming response by breaking the text into chunks.
   const chunks = text.match(/.{1,100}/g) || [];
   for (let i = 0; i < chunks.length; i++) {
     await new Promise(resolve => setTimeout(resolve, 50)); // Simulate network delay
@@ -10,15 +10,18 @@ const streamResponse = async (text: string, onChunk: (chunk: string) => void) =>
   }
 };
 
-// Dummy data for AI responses
+// --- CRITICAL NARRATIVE FIX --- 
+// The dummy data is updated to be consistent with the success stories shown in StateDeal.tsx.
 const dummyAnalysis: AnalysisData = {
     potentialBuyers: {
       total: 1240,
       top10: [
-        { id: 1, name: "Global Imports Corp", location: "Los Angeles", country: "USA", industry: "Electronics", buyerType: "Distributor" },
+        // MODIFIED: Replaced "Global Imports Corp" to align with the Home Depot story.
+        { id: 1, name: "North American Retail Partners", location: "Atlanta", country: "USA", industry: "Building Materials", buyerType: "Distributor" },
         { id: 2, name: "EuroTrade Solutions", location: "Hamburg", country: "Germany", industry: "Automotive", buyerType: "Wholesaler" },
         { id: 3, name: "Rising Sun Trading", location: "Tokyo", country: "Japan", industry: "Consumer Goods", buyerType: "Retailer" },
-        { id: 4, name: "Oceanic Distribution", location: "Sydney", country: "Australia", industry: "Building Materials", buyerType: "Importer" },
+        // MODIFIED: Replaced "Oceanic Distribution" to align with the Russia story.
+        { id: 4, name: "Eurasia Industrial Group", location: "Moscow", country: "Russia", industry: "Heavy Machinery", buyerType: "Importer" },
         { id: 5, name: "Maple Leaf Merchants", location: "Toronto", country: "Canada", industry: "Medical Supplies", buyerType: "Distributor" },
         { id: 6, name: "Union Jack Exporters", location: "London", country: "UK", industry: "Fashion", buyerType: "Wholesaler" },
         { id: 7, name: "Sahara Gateway", location: "Dubai", country: "UAE", industry: "Luxury Goods", buyerType: "Importer" },
@@ -29,7 +32,6 @@ const dummyAnalysis: AnalysisData = {
     },
 };
 
-
 export const aiService = {
   getAnalysis: async (
     formData: InfoFormData,
@@ -38,7 +40,7 @@ export const aiService = {
     onError: (error: Error) => void
   ) => {
     try {
-      console.log("--- Simulating AI Market Analysis ---");
+      console.log("--- Simulating AI Market Analysis (v2.2 - Narrative Aligned) ---");
       console.log("Input: ", formData);
       const responseText = JSON.stringify(dummyAnalysis, null, 2);
       await streamResponse(responseText, onChunk);
@@ -54,8 +56,7 @@ export const aiService = {
     onError: (error: Error) => void
   ) => {
     try {
-      console.log("--- Simulating Strategy Generation (No AI call) ---");
-      // No data is actually generated; the frontend shows a static SOP.
+      console.log("--- Simulating Strategy Generation ---");
       await new Promise(resolve => setTimeout(resolve, 1000));
       onComplete();
     } catch (error) {
@@ -64,12 +65,11 @@ export const aiService = {
     }
   },
 
-  // BUG FIX 3: Removed misleading comment. This function is actively used.
   submitApplication: async (dealData: DealData): Promise<{ success: boolean }> => {
-    console.log("--- Simulating Submission of Application ---");
-    console.log("Submitting Data: ", dealData);
-    
-    // Simulate a network request that might fail.
+    console.log("--- Simulating Submission of Application (v2.2) ---");
+    console.log("Submitting New Qualification Data: ", dealData);
+    console.log(`Company Name for verification: ${dealData.companyName}`);
+
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         if (Math.random() > 0.1) { // 90% success rate
