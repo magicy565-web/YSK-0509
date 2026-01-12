@@ -34,39 +34,34 @@ OUTPUT JSON FORMAT (No markdown, just raw JSON):
 }
 `;
 
-// --- 2. API 调用工具 (MODIFIED FOR NEW MODEL) ---
+// --- 2. API 调用工具 (CORRECTED MODEL BASED ON USER'S ACCOUNT) ---
 const callGenAI = async (prompt: string): Promise<any> => {
   const response = await fetch('/api/proxy', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      // UPGRADED MODEL: Switched from gpt-3.5-turbo to gpt-4o, which is more powerful and likely available.
-      model: "gpt-4o",
+      // FINAL FIX: Using the exact model name confirmed from the user's NOVA AI account settings.
+      model: "[vertex]gemini-3-pro-preview",
       messages: [{ role: "user", content: prompt }],
       stream: false
     }),
   });
 
-  // If the response is not OK, we now expect a detailed error from our proxy server.
   if (!response.ok) {
-    const errorPayload = await response.json(); // Our proxy now forwards the real error
-    // We construct a detailed error message.
+    const errorPayload = await response.json();
     throw new Error(`[Proxy Error] API request failed with status ${response.status}: ${JSON.stringify(errorPayload)}`);
   }
 
   const data = await response.json();
   
-  // Check if the successful response contains an error object (some APIs do this)
   if (data.error) {
       throw new Error(`[API Provider Error] ${data.error.message || JSON.stringify(data.error)}`);
   }
   
   let content = data.choices?.[0]?.message?.content || "";
   
-  // Clean up the response content
   content = content.replace(/```json/g, '').replace(/```/g, '').trim();
   
-  // Guard against empty content which would cause JSON.parse to fail
   if (!content) {
       throw new Error("Received empty content from AI API.");
   }
@@ -74,7 +69,7 @@ const callGenAI = async (prompt: string): Promise<any> => {
   return JSON.parse(content);
 };
 
-// --- 3. 业务逻辑导出 (MODIFIED FOR BETTER ERROR LOGGING) ---
+// --- 3. 业务逻辑导出 ---
 export const aiService = {
   getAnalysis: async (
     formData: InfoFormData,
@@ -91,22 +86,17 @@ export const aiService = {
       onComplete();
       
     } catch (error: any) {
-      // THIS IS THE CRITICAL NEW LOGGING MECHANISM
       console.error("======================================================");
       console.error("🔴 AI ANALYSIS FAILED - DISPLAYING FALLBACK DATA 🔴");
       console.error("======================================================");
       console.error("DETAILED ERROR REPORT:");
-      console.error(error); // This will now print the full error from the proxy
+      console.error(error);
       console.error("------------------------------------------------------");
-      console.error("Since the AI call failed, the application is showing a generic list of buyers.");
-      console.error("Please check the 'DETAILED ERROR REPORT' above to diagnose the issue.");
-      console.error("Common issues include: incorrect API key, invalid model name, or insufficient credits.");
+      console.error("If this still fails, please double-check the model name in your NOVA AI dashboard and ensure your account has a positive balance.");
       console.error("======================================================");
       
-      // We still call the onError callback if it exists
       onError(error);
       
-      // Fallback data is triggered
       const fallbackData: AnalysisData = {
         potentialBuyers: {
           total: 850,
