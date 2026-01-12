@@ -9,7 +9,6 @@ const port = 3001;
 
 app.use(express.json());
 
-// MODIFIED: Switched to the correct NOVA AI API endpoint.
 const API_ENDPOINT = "https://api.nova-oss.com/v1/chat/completions";
 
 app.post('/api/proxy', async (req, res) => {
@@ -19,9 +18,11 @@ app.post('/api/proxy', async (req, res) => {
     return res.status(400).json({ error: 'Missing model or messages in request body' });
   }
 
-  const apiKey = process.env.NOVA_API_KEY;
+  // MODIFIED: Switched to NOVAI_API_KEY to match Vercel environment variable.
+  const apiKey = process.env.NOVAI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'NOVA_API_KEY is not configured. Please add it to your .env file.' });
+    // Updated the error message to reflect the new variable name.
+    return res.status(500).json({ error: 'NOVAI_API_KEY is not configured. Please check your .env file and Vercel settings.' });
   }
 
   try {
@@ -34,14 +35,10 @@ app.post('/api/proxy', async (req, res) => {
       body: JSON.stringify(req.body)
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('NOVA AI API Error:', errorBody);
-      return res.status(response.status).json({ error: `API request failed: ${errorBody}` });
-    }
-    
+    // Forward the exact response from NOVA AI, whether it's a success or an error.
+    // This gives the frontend the full context.
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
 
   } catch (error) {
     console.error('Proxy Server Error:', error);

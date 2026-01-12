@@ -34,13 +34,14 @@ OUTPUT JSON FORMAT (No markdown, just raw JSON):
 }
 `;
 
-// --- 2. API 调用工具 (MODIFIED FOR BETTER ERROR HANDLING) ---
+// --- 2. API 调用工具 (MODIFIED FOR NEW MODEL) ---
 const callGenAI = async (prompt: string): Promise<any> => {
   const response = await fetch('/api/proxy', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: "gpt-3.5-turbo",
+      // UPGRADED MODEL: Switched from gpt-3.5-turbo to gpt-4o, which is more powerful and likely available.
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       stream: false
     }),
