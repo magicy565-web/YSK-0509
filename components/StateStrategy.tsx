@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChevronRight, ShieldCheck, Search, Users, Briefcase, X, Check, ArrowRight } from 'lucide-react';
 
@@ -14,7 +13,7 @@ export const StateStrategy: React.FC<Props> = ({ onApprove }) => {
       {/* Header */}
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">
-          仅需 3 步，加入【出海严选】核心供应链
+          仅需 1 步，加入【出海严选】核心供应链
         </h2>
         <p className="text-slate-500 mt-4 text-lg max-w-2xl mx-auto">
           我们打破传统 B2B 平台的“卖铲子”模式。我们不赚您的会员费，我们做您的<span className="text-emerald-600 font-bold">海外合伙人</span>，为您链接真实订单。
@@ -22,122 +21,65 @@ export const StateStrategy: React.FC<Props> = ({ onApprove }) => {
       </div>
 
       {/* --- 图形化流程 (The Graphic) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 relative">
+      <div className="grid grid-cols-1 gap-6 mb-16 relative">
         {/* 连接线 (仅在大屏显示) */}
-        <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-slate-200 -z-10"></div>
-
-        {/* Step 1 */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center relative group hover:-translate-y-1 transition-transform duration-300">
-          <div className="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-lg group-hover:scale-110 transition-transform">
-            1
+        
+        {/* Step 1: 提交资料 */}
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
+          <div className="mb-4 inline-block">
+            <div className="p-3 bg-emerald-100 rounded-full">
+              <Briefcase className="w-8 h-8 text-emerald-600" />
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">资质验厂与入库</h3>
-          <p className="text-sm text-slate-500 leading-relaxed">
-            提交您的工厂硬实力证明。通过人工核验后，您将进入我们的<span className="text-emerald-600 font-medium">【核心供应商白名单】</span>，对数万海外买家可见。
+          <h3 className="text-lg font-bold text-slate-800 mb-2">第 1 步: 提交工厂资料</h3>
+          <p className="text-sm text-slate-500">
+            仅需 3 分钟，在线提交您的工厂基本情况、核心产品和优势。所有资料将被严格保密，仅用于匹配和验厂。
           </p>
-          <div className="mt-4 inline-flex items-center text-xs font-semibold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-            <ShieldCheck className="w-3 h-3 mr-1" /> 严选门槛
-          </div>
         </div>
 
-        {/* Step 2 */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center relative group hover:-translate-y-1 transition-transform duration-300">
-          <div className="w-16 h-16 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
-            2
-          </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">加入出海操盘社群</h3>
-          <p className="text-sm text-slate-500 leading-relaxed">
-            不仅是接单。入驻即由专人拉入<span className="text-emerald-600 font-medium">【核心资源群】</span>，共享行业红皮书、物流底价与避坑指南，与行业大咖同行。
-          </p>
-          <div className="mt-4 inline-flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-            <Users className="w-3 h-3 mr-1" /> 资源共享
-          </div>
-        </div>
+      </div>
 
-        {/* Step 3 */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center relative group hover:-translate-y-1 transition-transform duration-300">
-          <div className="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-lg group-hover:scale-110 transition-transform">
-            3
+      {/* Trust & Safety */}
+      <div className="bg-slate-100 p-8 rounded-2xl border border-slate-200 mb-12">
+        <div className="flex flex-col md:flex-row items-center">
+          <div className="mb-6 md:mb-0 md:mr-8 text-center">
+            <ShieldCheck className="w-20 h-20 text-emerald-500 mx-auto" />
+            <h3 className="text-xl font-bold text-slate-800 mt-2">卖家保护承诺</h3>
           </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">坐享询盘与成交</h3>
-          <p className="text-sm text-slate-500 leading-relaxed">
-            无论是样品单还是柜货，我们负责搞定买家信任与谈判。您只需专注<span className="text-emerald-600 font-medium">产品交付</span>，做最省心的外贸。
-          </p>
-          <div className="mt-4 inline-flex items-center text-xs font-semibold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-            <Briefcase className="w-3 h-3 mr-1" /> 结果导向
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-slate-600">
+            <div className="flex items-start">
+              <Check className="w-5 h-5 text-emerald-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span><span className="font-semibold text-slate-800">资料加密:</span> 所有提交数据经加密传输，保障商业机密。</span>
+            </div>
+            <div className="flex items-start">
+              <Check className="w-5 h-5 text-emerald-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span><span className="font-semibold text-slate-800">授权访问:</span> 您的资料仅在获得您授权后，才会展示给已签署NDA的买家。</span>
+            </div>
+            <div className="flex items-start">
+              <Check className="w-5 h-5 text-emerald-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span><span className="font-semibold text-slate-800">不收会员费:</span> 我们承诺不收取任何形式的会员年费、坑位费。</span>
+            </div>
+            <div className="flex items-start">
+              <Check className="w-5 h-5 text-emerald-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span><span className="font-semibold text-slate-800">订单驱动:</span> 我们只在成功为您撮合真实订单后，才从订单中获取合理佣金。</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* --- 价值对比表 (The Table) --- */}
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 mb-12">
-        <div className="bg-slate-900 p-4 text-center">
-          <h3 className="text-white font-bold text-lg">为什么要选择【出海严选】？</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th scope="col" className="px-6 py-4 font-medium w-1/4">核心维度</th>
-                <th scope="col" className="px-6 py-4 font-medium w-1/3 text-slate-400">传统付费 B2B 平台</th>
-                <th scope="col" className="px-6 py-4 font-bold text-emerald-600 bg-emerald-50/30 w-1/3">出海严选联盟</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-slate-100 hover:bg-slate-50/50">
-                <td className="px-6 py-4 font-medium text-slate-900">入驻门槛</td>
-                <td className="px-6 py-4 text-slate-500">给钱就能上 (29,800/年起)</td>
-                <td className="px-6 py-4 font-bold text-emerald-600 bg-emerald-50/30 flex items-center">
-                  <Check className="w-4 h-4 mr-2" /> 0 元 (需通过资质验厂)
-                </td>
-              </tr>
-              <tr className="border-b border-slate-100 hover:bg-slate-50/50">
-                <td className="px-6 py-4 font-medium text-slate-900">流量逻辑</td>
-                <td className="px-6 py-4 text-slate-500">竞价排名 (谁出钱多谁在前面)</td>
-                <td className="px-6 py-4 font-bold text-emerald-600 bg-emerald-50/30 flex items-center">
-                  <Check className="w-4 h-4 mr-2" /> 严选匹配 (好产品优先)
-                </td>
-              </tr>
-              <tr className="border-b border-slate-100 hover:bg-slate-50/50">
-                <td className="px-6 py-4 font-medium text-slate-900">运营模式</td>
-                <td className="px-6 py-4 text-slate-500">需自聘运营团队 (成本高)</td>
-                <td className="px-6 py-4 font-bold text-emerald-600 bg-emerald-50/30 flex items-center">
-                  <Check className="w-4 h-4 mr-2" /> 全托管 / 社群专家赋能
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/50">
-                <td className="px-6 py-4 font-medium text-slate-900">结果保障</td>
-                <td className="px-6 py-4 text-slate-500 flex items-center">
-                  <X className="w-4 h-4 mr-2 text-red-400" /> 无订单保障
-                </td>
-                <td className="px-6 py-4 font-bold text-emerald-600 bg-emerald-50/30 flex items-center">
-                  <Check className="w-4 h-4 mr-2" /> 结果导向 (社群资源兜底)
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* CTA */}
+      {/* Call to Action */}
       <div className="text-center">
-        <button
+        <p className="text-slate-500 mb-6">准备好迎接来自全球 TOP 采购商的订单了吗？</p>
+        <button 
           onClick={onApprove}
-          className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-emerald-600 font-pj rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 hover:bg-emerald-700 shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
+          className="bg-emerald-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-lg hover:bg-emerald-700 transition-all duration-300 transform hover:scale-105 animate-pulse"
         >
-          我已确认权益，立即申请验厂
-          <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-          <div className="absolute -top-3 -right-3">
-            <span className="relative flex h-4 w-4">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
-            </span>
+          <div className="flex items-center">
+            <span>立即加入，获取订单</span>
+            <ArrowRight className="w-6 h-6 ml-3" />
           </div>
         </button>
-        <p className="mt-4 text-sm text-slate-400">
-          * 每日限额审核 50 家工厂，今日剩余名额紧张
-        </p>
       </div>
     </div>
   );
-};
+}
