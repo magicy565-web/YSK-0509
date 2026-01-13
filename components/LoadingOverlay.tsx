@@ -1,18 +1,18 @@
 
 import React from 'react';
 import { Loader2, Globe, Search, Database, Check } from 'lucide-react';
+import { AnimatedCounter } from './AnimatedCounter'; // TASK: Import the new component
 
 interface LoadingOverlayProps {
   isLoading: boolean;
   message: string;
-  step: number; // 当前进行到第几步 (1, 2, 3)
-  progress: number; // 总体百分比 (0-100)
+  step: number; // Current step (1, 2, 3)
+  progress: number; // Overall progress (0-100)
 }
 
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isLoading, message, step, progress }) => {
   if (!isLoading) return null;
 
-  // 定义三个阶段的配置
   const steps = [
     { id: 1, label: "全球扫描", icon: Globe },
     { id: 2, label: "精准匹配", icon: Search },
@@ -23,7 +23,6 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isLoading, messa
     <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[100] flex flex-col items-center justify-center animate-fade-in text-white">
       <div className="w-full max-w-lg p-8">
         
-        {/* 1. 中心图标动画 */}
         <div className="flex justify-center mb-8">
           <div className="relative">
             <div className="absolute inset-0 bg-emerald-500/30 rounded-full animate-ping blur-md"></div>
@@ -33,13 +32,18 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isLoading, messa
           </div>
         </div>
 
-        {/* 2. 当前正在进行的文字描述 */}
         <h3 className="text-2xl font-bold text-center mb-2 tracking-wide">系统正在处理</h3>
         <p className="text-emerald-400 text-center text-sm mb-10 h-6 font-mono">{message}</p>
 
-        {/* 3. 三段式进度条 (核心功能) */}
+        {/* --- TASK: Add AnimatedCounter for Step 1 --- */}
+        {step === 1 && (
+            <div className="grid grid-cols-2 gap-4 mb-8 animate-fade-in">
+                <AnimatedCounter target={3567} duration={14000} label="海关数据库" />
+                <AnimatedCounter target={147} duration={14000} label="独家采购商库" />
+            </div>
+        )}
+
         <div className="space-y-6">
-          {/* 进度条轨道 */}
           <div className="relative">
             <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-slate-700">
               <div 
@@ -49,9 +53,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isLoading, messa
             </div>
           </div>
 
-          {/* 三个步骤节点 */}
           <div className="flex justify-between items-start relative">
-            {/* 连线背景 */}
             <div className="absolute top-4 left-0 w-full h-0.5 bg-slate-700 -z-10"></div>
             
             {steps.map((s) => {

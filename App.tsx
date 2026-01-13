@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { InfoForm } from './components/InfoForm';
 import { StateAnalysis } from './components/StateAnalysis';
+import { StateStrategy } from './components/StateStrategy'; // TASK 8: Re-import
 import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
@@ -65,9 +66,8 @@ function App() {
 
     loadingTimers.current.push(progressInterval);
 
-    // --- Update loading messages and steps ---
     setLoadingStep(1);
-    setLoadingMessage(`正在扫描【全球】市场的海关数据与采购商线索...`); // CODE CLEANUP: Removed reference to targetMarket
+    setLoadingMessage(`正在扫描【全球】市场的海关数据与采购商线索...`);
 
     const timer1 = setTimeout(() => {
       setLoadingStep(2);
@@ -81,7 +81,6 @@ function App() {
 
     loadingTimers.current.push(timer1, timer2);
 
-    // --- Handle AI request and minimum wait time ---
     const minWaitTime = new Promise(resolve => setTimeout(resolve, 45000));
 
     const aiRequest = new Promise<void>((resolve, reject) => {
@@ -94,16 +93,13 @@ function App() {
 
     try {
       await Promise.all([aiRequest, minWaitTime]);
-      
       setLoadingProgress(100);
-      
       const successTimer = setTimeout(() => {
         clearAllTimers();
         setIsLoading(false);
         setCurrentState(AppState.ANALYSIS);
       }, 500);
       loadingTimers.current.push(successTimer);
-
     } catch (err: any) {
       console.error(err);
       clearAllTimers();
@@ -121,8 +117,13 @@ function App() {
     }
   }, [streamedAnalysis]);
 
-  // CODE CLEANUP: Renamed and simplified to transition directly to DEAL state
+  // TASK 8: Restore the correct flow to the STRATEGY state
   const handleAnalysisApproved = () => {
+    setCurrentState(AppState.STRATEGY);
+  };
+
+  // TASK 8: Add the handler to move from STRATEGY to DEAL
+  const handleStrategyApproved = () => {
     setCurrentState(AppState.DEAL);
   };
 
@@ -152,10 +153,10 @@ function App() {
 
         {currentState === AppState.FORM && <InfoForm onSubmit={handleFormSubmit} />}
         
-        {/* CODE CLEANUP: `onApprove` now points to the new handler */}
         {currentState === AppState.ANALYSIS && analysisData && <StateAnalysis data={analysisData} onApprove={handleAnalysisApproved} />}
         
-        {/* CODE CLEANUP: Removed StateStrategy rendering */}
+        {/* TASK 8: Re-add StateStrategy to the render logic */}
+        {currentState === AppState.STRATEGY && <StateStrategy onApprove={handleStrategyApproved} />}
         
         {currentState === AppState.DEAL && infoFormData && (
           <StateDeal 

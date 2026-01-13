@@ -9,11 +9,9 @@ import {
   ANNUAL_REVENUES,
   CERTIFICATES
 } from '../types'; 
-import { ArrowRight, ArrowLeft, Package, ShieldCheck, UserCheck, Zap, Building, BarChart2, Shield, User, Phone } from 'lucide-react';
-import { LiveTicker } from './LiveTicker.tsx'; // TASK 5 Placeholder
+import { ArrowRight, ArrowLeft, Package, ShieldCheck, Users, CheckCircle, Building, Shield, User, Phone, Target } from 'lucide-react'; // TASK 8: Import new icons
+import { LiveTicker } from './LiveTicker.tsx';
 
-// --- Mock Data ---
-const liveStats = { matchedAmount: 2.4, activeBuyers: 342, waitingDemands: 18 };
 const base64Placeholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
 const successStories: SuccessCase[] = [
@@ -35,7 +33,6 @@ const successStories: SuccessCase[] = [
   },
 ];
 
-// --- Sub-Components ---
 const TrustBadge = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
   <div className="flex items-center text-sm text-slate-300"><span className="text-emerald-500 mr-2">{icon}</span>{text}</div>
 );
@@ -61,9 +58,6 @@ const ProgressBar = ({ current, total }: { current: number, total: number }) => 
         <div className="bg-emerald-600 h-2.5 rounded-full" style={{ width: `${(current / total) * 100}%` }}></div>
     </div>
 );
-
-
-// --- Main StateDeal Component ---
 
 interface StateDealProps {
   initialFormData: InfoFormData;
@@ -112,21 +106,22 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
         
         {/* Left Side: The Pitch */}
         <div className="md:w-1/2 flex flex-col">
-          <h1 className="text-3xl font-bold text-emerald-400 leading-tight">加入优选供应商网络，<br/>与全球 500+ 顶尖买家建立连接</h1>
-          <p className="text-slate-300 mt-4 mb-6">我们已帮助数百家像您一样的工厂成功出海。现在，轮到您了。</p>
+          {/* TASK 8: Update title and subtitle */}
+          <h1 className="text-3xl font-bold text-emerald-400 leading-tight">加入【出海严选】供应商联盟</h1>
+          <p className="text-slate-300 mt-4 mb-6">对产品有信心？我们为您免费链接全球订单。此通道仅限拥有自主出口意愿的源头工厂/个人。</p>
           
           <h3 className="font-bold text-lg text-white mb-3 border-b border-slate-700 pb-2">近期成功案例</h3>
           <div className="space-y-4 mb-6">
             {successStories.map(story => <SuccessStoryCard key={story.id} story={story} />)}
           </div>
 
-          {/* --- TASK 5: LiveTicker Integration --- */}
           <LiveTicker />
 
+           {/* TASK 8: Update trust badges */}
            <div className="mt-auto pt-8 grid grid-cols-3 gap-4 text-center">
-             <TrustBadge icon={<UserCheck />} text="真实买家验证" />
-             <TrustBadge icon={<ShieldCheck />} text="交易资金担保" />
-             <TrustBadge icon={<Zap />} text="对供应商永久免费" />
+             <TrustBadge icon={<ShieldCheck className="w-4 h-4"/>} text="0费用入驻" />
+             <TrustBadge icon={<Users className="w-4 h-4"/>} text="社群资源共享" />
+             <TrustBadge icon={<Target className="w-4 h-4"/>} text="结果导向" />
            </div>
         </div>
 
