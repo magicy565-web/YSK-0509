@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { InfoForm } from './components/InfoForm';
 import { StateAnalysis } from './components/StateAnalysis';
@@ -8,7 +8,6 @@ import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
 import { aiService } from './services/aiService';
-// BUG FIX: Removed unused ProductQuotation, updated DealData to be FactoryQualification
 import { AppState, AnalysisData, DealData, FactoryQualification, InfoFormData } from './types';
 
 const ErrorDisplay = ({ message, onClose }: { message: string, onClose: () => void }) => (
@@ -21,43 +20,68 @@ const ErrorDisplay = ({ message, onClose }: { message: string, onClose: () => vo
   </div>
 );
 
-// BUG FIX: Removed obsolete initialDealData and related functions.
-// The state for the deal form is now managed within StateDeal.tsx itself.
-
 function App() {
   const [currentState, setCurrentState] = useState<AppState>(AppState.FORM);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   
-  // This state holds the data from the very first form (product info).
   const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
-  // This state will hold the final data from the Deal/Qualification form.
   const [dealData, setDealData] = useState<DealData | null>(null);
   const [streamedAnalysis, setStreamedAnalysis] = useState("");
 
-  const handleFormSubmit = async (formData: InfoFormData) => {
-    setIsLoading(true);
-    setLoadingMessage('AI正在分析全球市场匹配度...');
-    setInfoFormData(formData); // Save the initial form data
-    setError(null);
-    setStreamedAnalysis("");
-    
-    aiService.getAnalysis(formData, 
-      (chunk) => setStreamedAnalysis(prev => prev + chunk), 
-      () => {
-        setIsLoading(false);
-        setCurrentState(AppState.ANALYSIS);
-      },
-      (err) => {
-        console.error(err);
-        setError(`AI市场分析失败: ${err.message}`);
-        setIsLoading(false);
-      }
-    );
+  const loadingTimers = useRef<NodeJS.Timeout[]>([]);
+
+  const clearAllTimers = () => {
+    loadingTimers.current.forEach(timer => clearTimeout(timer));
+    loadingTimers.current = [];
   };
 
+  const handleFormSubmit = async (formData: InfoFormData) => {
+    setIsLoading(true);
+    setInfoFormData(formData);
+    setError(null);
+    setStreamedAnalysis("");
+    clearAllTimers();
+
+    setLoadingMessage(`正在扫描【${formData.targetMarket}】市场的海关数据与采购商线索...`);
+
+    const timer1 = setTimeout(() => {
+      setLoadingMessage(`正在独家采购商库中进行精准匹配 (基于产品核心优势识别)...`);
+    }, 15000);
+
+    const timer2 = setTimeout(() => {
+      setLoadingMessage(`已找到海外采购商线索，正在进行联系人数据验证与清洗...`);
+    }, 35000);
+
+    loadingTimers.current.push(timer1, timer2);
+
+    const minWaitTime = new Promise(resolve => setTimeout(resolve, 45000));
+
+    const aiRequest = new Promise<void>((resolve, reject) => {
+      aiService.getAnalysis(formData, 
+        (chunk) => setStreamedAnalysis(prev => prev + chunk), 
+        () => resolve(),
+        (err) => reject(err)
+      );
+    });
+
+    try {
+      await Promise.all([aiRequest, minWaitTime]);
+      
+      clearAllTimers();
+      setIsLoading(false);
+      setCurrentState(AppState.ANALYSIS);
+
+    } catch (err: any) {
+      console.error(err);
+      clearAllTimers();
+      setError(`市场分析中断: ${err.message}`);
+      setIsLoading(false);
+    }
+  };
+  
   useEffect(() => {
     if (streamedAnalysis) {
       try {
@@ -72,20 +96,14 @@ function App() {
     setLoadingMessage('正在为您生成服务与行动方案 (SOP)...');
     setError(null);
 
-    await aiService.getStrategy(
+    aiService.getStrategy(
       () => {
         setIsLoading(false);
         setCurrentState(AppState.STRATEGY);
-      },
-      (err) => {
-        console.error(err);
-        setError(`生成服务方案失败: ${err.message}`);
-        setIsLoading(false);
       }
     );
   };
 
-  // BUG FIX: Simplified this function. Its only job is to move to the next state.
   const handleStrategyApproved = () => {
     setCurrentState(AppState.DEAL);
   };
@@ -97,7 +115,6 @@ function App() {
       setError(null);
 
       try {
-        // Assuming aiService.submitApplication is updated to handle the new DealData format
         await aiService.submitApplication(finalDealData);
         setCurrentState(AppState.SUCCESS);
       } catch (err: any) {
@@ -121,9 +138,6 @@ function App() {
         
         {currentState === AppState.STRATEGY && <StateStrategy onApprove={handleStrategyApproved} />}
         
-        {/* --- CRITICAL FIX --- */}
-        {/* Render StateDeal ONLY when in DEAL state AND we have the initial form data. */}
-        {/* Pass the initial form data to StateDeal to connect the user journey. */}
         {currentState === AppState.DEAL && infoFormData && (
           <StateDeal 
             initialFormData={infoFormData} 
