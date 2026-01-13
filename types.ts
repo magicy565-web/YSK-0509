@@ -1,5 +1,5 @@
+// types.ts
 
-// Defines the possible states of the application.
 export enum AppState {
   FORM = 'FORM',
   ANALYSIS = 'ANALYSIS',
@@ -8,16 +8,13 @@ export enum AppState {
   SUCCESS = 'SUCCESS',
 }
 
-// --- Data Structures ---
-
-// 1. Initial form data from the user
 export interface InfoFormData {
   productName: string;
   productDetails: string;
   targetMarket: string;
 }
 
-// 2. Data for the Analysis/Results state
+// 基础买家信息 (用于普通列表)
 export interface PotentialBuyer {
   id: number;
   name: string;
@@ -27,40 +24,46 @@ export interface PotentialBuyer {
   buyerType: string;
 }
 
+// [新增] 推荐买家详细信息 (用于高亮展示)
+export interface RecommendedBuyer extends PotentialBuyer {
+  matchScore: number;       // 匹配度 (例如 98)
+  companyMasked: string;    // 模糊处理的公司名 (例如 "North Am*** Trading")
+  productScope: string;     // 意向采购范围
+  factoryPreference: string;// 偏好的工厂类型 (例如 "有OEM经验", "源头工厂")
+  qualifications: string[]; // 需要的资质 (例如 ["ISO9001", "UL"])
+  joinDate: string;         // 加入平台时间
+  lastOrderSize: string;    // 最近一次采购规模 (模糊处理)
+}
+
 export interface AnalysisData {
   potentialBuyers: {
     total: number;
+    // [修改] 增加 bestMatch 字段
+    bestMatch?: RecommendedBuyer;
     top10?: PotentialBuyer[];
   };
 }
 
-// 3. Strategy state is now a static SOP, so no complex type is needed.
-
-// 4. Deal state data - REBUILT FOR V2.1
-// This interface now matches the new, simplified, high-conversion qualification form.
+// ... 其他 DealData, FactoryQualification, SuccessCase 保持不变
 export interface FactoryQualification {
   companyName: string;
   contactPerson: string;
-  position: 'owner' | 'manager' | 'other'; // Position is now a required, specific field
-  hasExportRights: boolean | null; // Changed to boolean for Yes/No logic
-  accepts30PercentDeposit: boolean | null; // Changed to boolean for Yes/No logic
-  factoryPicture: File | null; // For the factory picture upload
+  position: 'owner' | 'manager' | 'other';
+  hasExportRights: boolean | null;
+  accepts30PercentDeposit: boolean | null;
+  factoryPicture: File | null;
 }
 
-// DealData is now a direct representation of the qualification form.
 export type DealData = FactoryQualification;
 
-
-// 5. Success state - NEW FOR V2.1
-// Data structure for the success stories shown on the Deal page.
 export interface SuccessCase {
   id: string;
-  title: string;          // e.g., "浙江某纺织厂 3天对接德国超市"
-  tags: string[];         // e.g., ["纺织", "德国", "订单额$50k"]
-  imageUrl: string;       // URL for the testimonial image (e.g., chat screenshot)
-  description: string;    // Short success story
+  title: string;
+  tags: string[];
+  imageUrl: string;
+  description: string;
   metrics: {
-    label: string;      // e.g., "获客成本"
-    value: string;      // e.g., "0"
+    label: string;
+    value: string;
   }[];
 }
