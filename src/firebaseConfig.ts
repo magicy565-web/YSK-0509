@@ -1,22 +1,27 @@
-
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// These environment variables need to be configured in your .env.local file.
-// You can get these values from the Firebase console -> Project settings -> General -> "Your apps".
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyAEiqJTKa2Zu974C27ywBD_c3c9L1i6a1k",
+  authDomain: "magicyang-c19c8.firebaseapp.com",
+  projectId: "magicyang-c19c8",
+  storageBucket: "magicyang-c19c8.firebasestorage.app",
+  messagingSenderId: "459113800692",
+  appId: "1:459113800692:web:2fe9b379c70403bfc8cfa1",
+  measurementId: "G-PSJGCBSJB1"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
-// Export database and storage instances for use in other files
 export const db = getFirestore(app);
 export const storage = getStorage(app);
