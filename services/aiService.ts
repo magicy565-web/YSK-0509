@@ -71,7 +71,7 @@ const callAAsStream = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "[vertex]gemini-1.5-pro-preview-0514",
+        model: "[vertex]gemini-3-pro-preview",
         messages: messages,
         stream: true
       }),
