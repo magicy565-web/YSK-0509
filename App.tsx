@@ -111,8 +111,15 @@ function App() {
     if (streamedAnalysis) {
       try {
         const parsed = JSON.parse(streamedAnalysis);
-        setAnalysisData(parsed);
-      } catch (e) { /* Incomplete JSON */ }
+        
+        // [修复核心]：只有当 parsed 对象包含 potentialBuyers 且不为空时，才更新状态
+        // 这防止了空对象 {} 或不完整的数据导致组件崩溃
+        if (parsed && typeof parsed === 'object' && parsed.potentialBuyers) {
+             setAnalysisData(parsed);
+        }
+      } catch (e) { 
+          // 忽略 JSON 解析错误，这在流式传输中是正常的（因为 JSON 可能还没传输完）
+      }
     }
   }, [streamedAnalysis]);
 
