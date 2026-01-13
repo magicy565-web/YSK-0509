@@ -39,7 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentState }) => {
              <div className="bg-emerald-500 p-1.5 rounded-lg">
               <Briefcase className="h-6 w-6 text-slate-900" />
             </div>
-            <span className="font-bold text-xl tracking-tight">AI采购代理</span>
+            <span className="font-bold text-xl tracking-tight">全球外贸·智造领航员</span>
           </div>
 
           {/* Service Progress Indicator - Now with 5 steps */}

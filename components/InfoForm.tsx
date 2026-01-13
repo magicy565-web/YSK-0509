@@ -28,7 +28,7 @@ export const InfoForm: React.FC<InfoFormProps> = ({ onSubmit }) => {
     <div className="max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-lg border border-slate-100">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-slate-900">提供您的产品信息</h1>
-        <p className="text-slate-500 mt-2">只需30秒，AI将为您评估全球的潜在买家和市场机会。</p>
+        <p className="text-slate-500 mt-2">只需30秒，系统将基于海关数据为您评估全球潜在买家。</p>
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -92,7 +92,7 @@ export const InfoForm: React.FC<InfoFormProps> = ({ onSubmit }) => {
             type="submit"
             className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105 flex items-center justify-center"
           >
-            开始AI分析
+            立即启动全球匹配
             <ArrowRight className="w-5 h-5 ml-3" />
           </button>
         </div>

@@ -21,7 +21,7 @@ const BestMatchCard: React.FC<{ buyer: RecommendedBuyer }> = ({ buyer }) => {
       <div className="bg-emerald-600 text-white px-4 py-1 text-sm font-bold flex justify-between items-center">
         <div className="flex items-center">
           <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
-          AI 智能推荐 - 最佳匹配
+          大数据严选 - 最佳匹配
         </div>
         <span className="bg-white/20 px-2 py-0.5 rounded text-xs">98% 匹配度</span>
       </div>
@@ -149,7 +149,7 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none"></div>
 
-        <h2 className="text-3xl font-bold tracking-tight relative z-10">AI 市场分析报告</h2>
+        <h2 className="text-3xl font-bold tracking-tight relative z-10">全球市场机会洞察报告</h2>
         <p className="mt-2 text-slate-300 relative z-10">基于全球海关数据与B2B行为分析</p>
         
         <div className="mt-8 flex flex-wrap justify-center gap-4 md:gap-12 relative z-10">
@@ -203,7 +203,7 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
         {/* 右侧：行动号召与信息流 (占1列) */}
         <div className="lg:col-span-1">
           <div className="bg-indigo-900 text-white rounded-2xl p-6 shadow-lg sticky top-24">
-            <h4 className="font-bold text-lg mb-4">为什么选择 AI 代理？</h4>
+            <h4 className="font-bold text-lg mb-4">为什么选择我们？</h4>
             <ul className="space-y-4 text-sm text-indigo-100">
               <li className="flex items-start">
                 <div className="bg-indigo-700 p-1 rounded-full mr-3 mt-0.5"><CheckCircle2 className="w-3 h-3" /></div>
@@ -211,7 +211,7 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
               </li>
               <li className="flex items-start">
                 <div className="bg-indigo-700 p-1 rounded-full mr-3 mt-0.5"><CheckCircle2 className="w-3 h-3" /></div>
-                <span>不仅是名单，我们提供全套代开发服务。</span>
+                <span>让我们的本地化专家团队为您处理客户开发。</span>
               </li>
               <li className="flex items-start">
                 <div className="bg-indigo-700 p-1 rounded-full mr-3 mt-0.5"><CheckCircle2 className="w-3 h-3" /></div>
