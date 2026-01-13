@@ -13,8 +13,8 @@ interface StateAnalysisProps {
 
 // 1. 最推荐买家卡片组件 (新)
 const BestMatchCard: React.FC<{ buyer: RecommendedBuyer }> = ({ buyer }) => {
-  // 生成头像占位符
-  const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${buyer.name}&backgroundColor=059669`;
+  // VULNERABILITY FIX: Encode the buyer's name to prevent XSS.
+  const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(buyer.name)}&backgroundColor=059669`;
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border-2 border-emerald-500/30 overflow-hidden relative transform hover:scale-[1.01] transition-all duration-300">

@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { InfoForm } from './components/InfoForm';
 import { StateAnalysis } from './components/StateAnalysis';
-import { StateStrategy } from './components/StateStrategy';
 import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
@@ -48,39 +47,27 @@ function App() {
     setStreamedAnalysis("");
     clearAllTimers();
     
-    // 初始化状态
     setLoadingStep(1);
     setLoadingProgress(0);
 
-    // --- 定义进度模拟逻辑 ---
     const startTime = Date.now();
-    const duration = 45000; // 45秒总时长
+    const duration = 45000; // 45s total duration
 
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      let percent = 0;
+      let percent = Math.min(99, Math.round((elapsed / duration) * 100));
+      setLoadingProgress(percent);
 
-      if (elapsed < 15000) {
-        // 阶段 1
-        percent = (elapsed / 15000) * 30;
-      } else if (elapsed < 35000) {
-        // 阶段 2
-        percent = 30 + ((elapsed - 15000) / 20000) * 40;
-      } else if (elapsed < duration) {
-        // 阶段 3
-        percent = 70 + ((elapsed - 35000) / 10000) * 25;
-      } else {
-        percent = 99;
-      }
-      
-      setLoadingProgress(Math.min(99, Math.round(percent)));
+       if (elapsed >= duration) {
+          clearInterval(progressInterval);
+       }
     }, 100);
 
     loadingTimers.current.push(progressInterval);
 
-    // --- 文案与步骤切换定时器 ---
+    // --- Update loading messages and steps ---
     setLoadingStep(1);
-    setLoadingMessage(`正在扫描【${formData.targetMarket}】市场的海关数据与采购商线索...`);
+    setLoadingMessage(`正在扫描【全球】市场的海关数据与采购商线索...`); // CODE CLEANUP: Removed reference to targetMarket
 
     const timer1 = setTimeout(() => {
       setLoadingStep(2);
@@ -94,6 +81,7 @@ function App() {
 
     loadingTimers.current.push(timer1, timer2);
 
+    // --- Handle AI request and minimum wait time ---
     const minWaitTime = new Promise(resolve => setTimeout(resolve, 45000));
 
     const aiRequest = new Promise<void>((resolve, reject) => {
@@ -133,20 +121,8 @@ function App() {
     }
   }, [streamedAnalysis]);
 
-  const handleApproveAnalysis = async () => {
-    setIsLoading(true);
-    setLoadingMessage('正在为您生成服务与行动方案 (SOP)...');
-    setError(null);
-
-    aiService.getStrategy(
-      () => {
-        setIsLoading(false);
-        setCurrentState(AppState.STRATEGY);
-      }
-    );
-  };
-
-  const handleStrategyApproved = () => {
+  // CODE CLEANUP: Renamed and simplified to transition directly to DEAL state
+  const handleAnalysisApproved = () => {
     setCurrentState(AppState.DEAL);
   };
 
@@ -159,7 +135,7 @@ function App() {
       try {
         await aiService.submitApplication(finalDealData);
         setCurrentState(AppState.SUCCESS);
-      } catch (err: any) {
+      } catch (err: any) { 
         console.error(err);
         setError(`提交失败: ${err.message}`);
       } finally {
@@ -176,9 +152,10 @@ function App() {
 
         {currentState === AppState.FORM && <InfoForm onSubmit={handleFormSubmit} />}
         
-        {currentState === AppState.ANALYSIS && analysisData && <StateAnalysis data={analysisData} onApprove={handleApproveAnalysis} />}
+        {/* CODE CLEANUP: `onApprove` now points to the new handler */}
+        {currentState === AppState.ANALYSIS && analysisData && <StateAnalysis data={analysisData} onApprove={handleAnalysisApproved} />}
         
-        {currentState === AppState.STRATEGY && <StateStrategy onApprove={handleStrategyApproved} />}
+        {/* CODE CLEANUP: Removed StateStrategy rendering */}
         
         {currentState === AppState.DEAL && infoFormData && (
           <StateDeal 
