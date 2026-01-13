@@ -4,33 +4,59 @@ import {
   Star, Award, Calendar, DollarSign, Package, Factory, CheckCircle2 
 } from 'lucide-react';
 import { AnalysisData, PotentialBuyer, RecommendedBuyer } from '../types';
-import { LiveTicker } from './LiveTicker.tsx'; // TASK 5
+import { LiveTicker } from './LiveTicker';
 
 interface StateAnalysisProps {
   data: AnalysisData;
   onApprove: () => void;
+  productName: string; // ADDED: To create a feeling of customization
 }
 
-// 1. 最推荐买家卡片组件 (新)
-const BestMatchCard: React.FC<{ buyer: RecommendedBuyer }> = ({ buyer }) => {
-  // VULNERABILITY FIX: Encode the buyer's name to prevent XSS.
+// 1. Best Match Card Component (Upgraded)
+const BestMatchCard: React.FC<{ buyer: RecommendedBuyer, productName: string }> = ({ buyer, productName }) => {
   const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(buyer.name)}&backgroundColor=059669`;
+
+  // This function dynamically highlights the user's product query within the buyer's scope.
+  const renderProductScope = () => {
+    const scope = buyer.productScope || '';
+    const userProduct = productName || '';
+    if (!userProduct) return scope;
+
+    const regex = new RegExp(userProduct.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+    const match = scope.match(regex);
+
+    if (match) {
+      const matchedText = match[0];
+      const parts = scope.split(regex, 2);
+      return (
+        <>
+          {parts[0]}
+          <span className="text-emerald-700 bg-emerald-100 ring-1 ring-emerald-200 px-2 py-1 rounded-md mx-1 font-bold">{matchedText}</span>
+          {parts[1]}
+        </>
+      );
+    } else {
+      return (
+        <>
+          <span className="text-emerald-700 bg-emerald-100 ring-1 ring-emerald-200 px-2 py-1 rounded-md mr-2 font-bold">{userProduct}</span>
+          {scope}
+        </>
+      );
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border-2 border-emerald-500/30 overflow-hidden relative transform hover:scale-[1.01] transition-all duration-300">
-      {/* 顶部标签 */}
       <div className="bg-emerald-600 text-white px-4 py-1 text-sm font-bold flex justify-between items-center">
         <div className="flex items-center">
           <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
           大数据严选 - 最佳匹配
         </div>
-        <span className="bg-white/20 px-2 py-0.5 rounded text-xs">98% 匹配度</span>
+        <span className="bg-white/20 px-2 py-0.5 rounded text-xs">{buyer.matchScore}% 匹配度</span>
       </div>
 
       <div className="p-6">
         <div className="flex flex-col md:flex-row gap-6">
-          
-          {/* 左侧：基础信息 */}
           <div className="flex-shrink-0 flex flex-col items-center md:items-start text-center md:text-left min-w-[140px]">
             <img src={avatarUrl} alt="Buyer" className="w-20 h-20 rounded-full border-4 border-emerald-50 mb-3 shadow-sm" />
             <h3 className="font-bold text-slate-800 text-lg">{buyer.name}</h3>
@@ -41,14 +67,13 @@ const BestMatchCard: React.FC<{ buyer: RecommendedBuyer }> = ({ buyer }) => {
             </div>
           </div>
 
-          {/* 右侧：详细情报 */}
           <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div className="space-y-3">
               <div className="flex items-start">
                 <div className="bg-blue-50 p-1.5 rounded mr-3 mt-0.5"><Package className="w-4 h-4 text-blue-600" /></div>
                 <div>
                   <p className="text-slate-400 text-xs">意向采购范围</p>
-                  <p className="font-semibold text-slate-800">{buyer.productScope}</p>
+                  <p className="font-semibold text-slate-800">{renderProductScope()}</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -85,7 +110,6 @@ const BestMatchCard: React.FC<{ buyer: RecommendedBuyer }> = ({ buyer }) => {
           </div>
         </div>
 
-        {/* 底部信息条 */}
         <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center">
             <Calendar className="w-3 h-3 mr-1.5" />
@@ -101,7 +125,6 @@ const BestMatchCard: React.FC<{ buyer: RecommendedBuyer }> = ({ buyer }) => {
   );
 };
 
-// 2. 普通锁定列表项 (保持简洁)
 const LockedBuyer: React.FC<{ buyer: PotentialBuyer; index: number }> = ({ buyer, index }) => {
   const maskName = (name: string) => {
     if (name.length < 4) return '***';
@@ -126,7 +149,6 @@ const LockedBuyer: React.FC<{ buyer: PotentialBuyer; index: number }> = ({ buyer
         </div>
       </div>
       
-      {/* 锁定遮罩 */}
       <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 rounded-lg cursor-not-allowed">
         <div className="bg-slate-900/90 text-white text-xs px-3 py-1.5 rounded-full flex items-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
           <Lock className="w-3 h-3 mr-1.5" />
@@ -137,21 +159,19 @@ const LockedBuyer: React.FC<{ buyer: PotentialBuyer; index: number }> = ({ buyer
   );
 };
 
-export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove }) => {
+export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove, productName }) => {
   const topBuyers = data.potentialBuyers.top10 || [];
   const bestMatch = data.potentialBuyers.bestMatch;
 
   return (
     <div className="max-w-6xl mx-auto py-8 animate-fade-in pb-32">
       
-      {/* Header Stats */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl shadow-2xl p-8 mb-4 text-center relative overflow-hidden">
-        {/* 背景装饰 */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none"></div>
 
         <h2 className="text-3xl font-bold tracking-tight relative z-10">全球市场机会洞察报告</h2>
-        <p className="mt-2 text-slate-300 relative z-10">基于全球海关数据与B2B行为分析</p>
+        <p className="mt-2 text-slate-300 relative z-10">“<span className='text-white font-bold'>{productName}</span>”产品专项分析</p>
         
         <div className="mt-8 flex flex-wrap justify-center gap-4 md:gap-12 relative z-10">
           <div className="bg-white/10 backdrop-blur-sm px-6 py-3 rounded-2xl border border-white/10">
@@ -171,13 +191,11 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
         </div>
       </div>
 
-       {/* --- TASK 5: LiveTicker Integration --- */}
       <div className="mb-8 -mt-2 px-4 md:px-0">
         <LiveTicker />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* 左侧：主要推荐区域 (占2列) */}
         <div className="lg:col-span-2 space-y-8">
           {bestMatch && (
             <section>
@@ -188,7 +206,7 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
                 </h3>
                 <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded">刚刚更新</span>
               </div>
-              <BestMatchCard buyer={bestMatch} />
+              <BestMatchCard buyer={bestMatch} productName={productName} />
               <p className="text-xs text-slate-400 mt-3 ml-1 flex items-center">
                 <Database className="w-3 h-3 mr-1.5" />
                 该买家数据来源于最近3个月的活跃询盘记录与海关提单。
@@ -206,7 +224,6 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
           </section>
         </div>
 
-        {/* 右侧：行动号召与信息流 (占1列) */}
         <div className="lg:col-span-1">
           <div className="bg-indigo-900 text-white rounded-2xl p-6 shadow-lg sticky top-24">
             <h4 className="font-bold text-lg mb-4">为什么选择我们？</h4>
@@ -239,7 +256,6 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
         </div>
       </div>
 
-      {/* 移动端底部悬浮按钮 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:hidden z-50">
         <button
           onClick={onApprove}

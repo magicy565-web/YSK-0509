@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { 
   DealData, 
@@ -42,8 +41,7 @@ const successStories: SuccessCase[] = [
   }
 ];
 
-// --- 上传组件 ---
-const ImageUploadField: React.FC<{ // ... (rest of the component is in the prompt)
+const ImageUploadField: React.FC<{
   label: string;
   subLabel?: string;
   accept?: string;
@@ -74,7 +72,7 @@ const ImageUploadField: React.FC<{ // ... (rest of the component is in the promp
         {label} <span className="text-slate-500 font-normal ml-1">{subLabel}</span>
       </label>
       <div 
-        className={`border-2 border-dashed rounded-lg p-4 text-center transition-all cursor-pointer group ${dragActive ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-600 hover:border-emerald-500/50 hover:bg-slate-800'}`}
+        className={`border-2 border-dashed rounded-lg p-4 text-center transition-all cursor-pointer group ${dragActive ? 'border-emerald-500 bg-emerald-500/10' : files.length > 0 ? 'border-emerald-500/50 bg-slate-800' : 'border-slate-600 hover:border-emerald-500/50 hover:bg-slate-800'}`}
         onDragEnter={onDrag} onDragLeave={onDrag} onDragOver={onDrag} onDrop={onDrop}
         onClick={() => fileInputRef.current?.click()}
       >
@@ -127,8 +125,9 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
     businessLicense: null, factoryPhotos: [], productCertificates: [],
     contactPerson: '', position: 'manager', contactPhone: '',
   });
+  const [ndaAccepted, setNdaAccepted] = useState(true);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -150,7 +149,7 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
   const canGoToStep2 = formData.companyName && formData.establishedYear && formData.annualRevenue;
   const canGoToStep3 = formData.mainProductCategory && formData.mainCertificates.length > 0;
   const canGoToStep4 = formData.businessLicense !== null && formData.factoryPhotos.length > 0;
-  const canSubmit = formData.contactPerson && formData.position && formData.contactPhone;
+  const canSubmit = formData.contactPerson && formData.position && /^1[3-9]\d{9}$/.test(formData.contactPhone);
 
   return (
     <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-xl shadow-2xl max-w-6xl mx-auto border border-slate-800">
@@ -307,7 +306,22 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-1">手机号码</label>
-                            <input type="tel" name="contactPhone" value={formData.contactPhone} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white" placeholder='用于接收审核通知' required />
+                            <input type="tel" name="contactPhone" value={formData.contactPhone} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white" placeholder='用于接收审核通知，例如: 13812345678' required />
+                        </div>
+                        <div className="pt-2">
+                            <label htmlFor="nda" className="flex items-start text-sm text-slate-400 cursor-pointer">
+                                <input 
+                                    id="nda" 
+                                    type="checkbox" 
+                                    checked={ndaAccepted} 
+                                    onChange={(e) => setNdaAccepted(e.target.checked)}
+                                    className="h-5 w-5 rounded border-slate-500 bg-slate-700 text-emerald-500 focus:ring-emerald-500/50 mr-3 mt-0.5 flex-shrink-0"
+                                />
+                                <span>
+                                    我同意平台隐私条款，并要求平台对我的工厂信息签署
+                                    <a href="#" className="font-semibold text-emerald-400 hover:text-emerald-300"> 单向保密协议 (NDA)</a>。
+                                </span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -332,8 +346,8 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
                 ) : (
                     <button 
                         type="submit" 
-                        disabled={!canSubmit}
-                        className="flex-grow px-6 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:from-slate-700 disabled:to-slate-700 disabled:shadow-none transition-all flex items-center justify-center"
+                        disabled={!canSubmit || !ndaAccepted}
+                        className="flex-grow px-6 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:shadow-none transition-all flex items-center justify-center"
                     >
                         <CheckCircle className="w-5 h-5 mr-2" /> 提交申请，获取买家资源
                     </button>
