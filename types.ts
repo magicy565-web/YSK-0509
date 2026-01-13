@@ -44,15 +44,28 @@ export interface AnalysisData {
   };
 }
 
-// ... 其他 DealData, FactoryQualification, SuccessCase 保持不变
+// --- TASK 4: "Industrial-Grade" Qualification Form ---
+
+export const CERTIFICATES = ["ISO9001", "BSCI", "CE", "UL", "FDA", "其他"];
+export const ESTABLISHED_YEARS = ["1-3年", "3-5年", "5-10年", "10年以上"];
+export const ANNUAL_REVENUES = ["<100万", "100-500万", "500-1000万", ">1000万"];
+
 export interface FactoryQualification {
+  // Step 1: 企业硬实力
   companyName: string;
+  establishedYear: string; 
+  annualRevenue: string;
+  
+  // Step 2: 合规与认证
+  mainProductCategory: string;
+  mainCertificates: string[];
+
+  // Step 3: 决策人对接
   contactPerson: string;
   position: 'owner' | 'manager' | 'other';
-  hasExportRights: boolean | null;
-  accepts30PercentDeposit: boolean | null;
-  factoryPicture: File | null;
+  contactPhone: string;
 }
+
 
 export type DealData = FactoryQualification;
 

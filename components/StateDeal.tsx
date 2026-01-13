@@ -1,30 +1,36 @@
 
 import React, { useState } from 'react';
-import { DealData, FactoryQualification, SuccessCase, InfoFormData } from '../types'; 
-import { ArrowRight, CheckCircle, ImagePlus, Package, ShieldCheck, UserCheck, Zap } from 'lucide-react';
+import { 
+  DealData, 
+  FactoryQualification, 
+  SuccessCase, 
+  InfoFormData,
+  ESTABLISHED_YEARS,
+  ANNUAL_REVENUES,
+  CERTIFICATES
+} from '../types'; 
+import { ArrowRight, ArrowLeft, Package, ShieldCheck, UserCheck, Zap, Building, BarChart2, Shield, User, Phone } from 'lucide-react';
+import { LiveTicker } from './LiveTicker.tsx'; // TASK 5 Placeholder
 
 // --- Mock Data ---
 const liveStats = { matchedAmount: 2.4, activeBuyers: 342, waitingDemands: 18 };
 const base64Placeholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
-// --- CRITICAL NARRATIVE FIX (v2.3) ---
-// The success stories now BOTH align with the matchmaking SOP presented in StateStrategy.
 const successStories: SuccessCase[] = [
   {
     id: 'case-1',
     title: '广东中山灯具厂 → 美国 Home Depot 供应商',
     tags: ['灯具照明', '美国', '首单$12k'],
     imageUrl: base64Placeholder,
-    description: '通过平台快速匹配，2周内拿下了美国知名建材零售商的试单，解决了传统渠道开发客户慢的难题。',
-    metrics: [{ label: '匹配周期', value: '2周' }, { label: '合作买家', value: '美国头部零售商' }],
+    description: '通过我们第一周的“海关数据筛选”，第二周的“本地化开发”，成功在第三周将一个真实的、匹配的买家询盘移交给他们，并最终签约了当地大型分销商。',
+    metrics: [{ label: '匹配周期', value: '3周' }, { label: '关键成果', value: '签约新区域分销商' }],
   },
   {
     id: 'case-2',
-    // MODIFIED: Replaced "Full-service operation" with a story about market entry via matchmaking.
     title: '河北沧州管件厂 → 俄罗斯新市场',
     tags: ['管道配件', '俄罗斯', '精准匹配'],
     imageUrl: base64Placeholder,
-    description: '工厂虽有外贸团队，但一直无法打入俄罗斯市场。通过我们第一周的“海关数据筛选”，第二周的“本地化开发”，成功在第三周将一个真实的、匹配的买家询盘移交给他们，并最终签约了当地大型分销商。',
+    description: '工厂虽有外贸团队，但一直无法打入俄罗斯市场。通过我们对买家需求的精准分析，成功匹配并签约了第一家当地大型分销商。',
     metrics: [{ label: '核心价值', value: '打破市场壁垒' }, { label: '关键成果', value: '签约新区域分销商' }],
   },
 ];
@@ -34,7 +40,6 @@ const TrustBadge = ({ icon, text }: { icon: React.ReactNode; text: string }) => 
   <div className="flex items-center text-sm text-slate-300"><span className="text-emerald-500 mr-2">{icon}</span>{text}</div>
 );
 
-// --- FIX: Add a proper interface for the props and define the component as a React.FC
 interface SuccessStoryCardProps {
     story: SuccessCase;
 }
@@ -49,7 +54,14 @@ const SuccessStoryCard: React.FC<SuccessStoryCardProps> = ({ story }) => (
           </div>
       </div>
     </div>
-  );
+);
+
+const ProgressBar = ({ current, total }: { current: number, total: number }) => (
+    <div className="w-full bg-slate-700 rounded-full h-2.5 mb-6">
+        <div className="bg-emerald-600 h-2.5 rounded-full" style={{ width: `${(current / total) * 100}%` }}></div>
+    </div>
+);
+
 
 // --- Main StateDeal Component ---
 
@@ -62,30 +74,37 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FactoryQualification>({
     companyName: '',
+    establishedYear: ESTABLISHED_YEARS[0],
+    annualRevenue: ANNUAL_REVENUES[0],
+    mainProductCategory: '',
+    mainCertificates: [],
     contactPerson: '',
     position: 'manager',
-    hasExportRights: null,
-    accepts30PercentDeposit: null,
-    factoryPicture: null,
+    contactPhone: '',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData(prev => ({ ...prev, factoryPicture: e.target.files![0] }));
-    }
+  
+  const handleCertificateChange = (certificate: string) => {
+    setFormData(prev => {
+        const newCerts = prev.mainCertificates.includes(certificate)
+            ? prev.mainCertificates.filter(c => c !== certificate)
+            : [...prev.mainCertificates, certificate];
+        return { ...prev, mainCertificates: newCerts };
+    });
   };
-
-  const canGoToStep2 = formData.companyName && formData.contactPerson && formData.position;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onApprove(formData);
   };
+
+  const canGoToStep2 = formData.companyName && formData.establishedYear && formData.annualRevenue;
+  const canGoToStep3 = formData.mainProductCategory && formData.mainCertificates.length > 0;
+  const canSubmit = formData.contactPerson && formData.position && formData.contactPhone;
 
   return (
     <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-xl shadow-2xl">
@@ -95,17 +114,14 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
         <div className="md:w-1/2 flex flex-col">
           <h1 className="text-3xl font-bold text-emerald-400 leading-tight">加入优选供应商网络，<br/>与全球 500+ 顶尖买家建立连接</h1>
           <p className="text-slate-300 mt-4 mb-6">我们已帮助数百家像您一样的工厂成功出海。现在，轮到您了。</p>
-
-          <div className="grid grid-cols-3 gap-4 bg-slate-800/50 p-4 rounded-lg mb-6 text-center">
-            <div><p className="text-3xl font-bold">${liveStats.matchedAmount}M</p><p className="text-xs text-slate-400">本月已撮合订单</p></div>
-            <div><p className="text-3xl font-bold">{liveStats.activeBuyers}</p><p className="text-xs text-slate-400">活跃采购商</p></div>
-            <div><p className="text-3xl font-bold">{liveStats.waitingDemands}</p><p className="text-xs text-slate-400">待匹配需求</p></div>
-          </div>
-
+          
           <h3 className="font-bold text-lg text-white mb-3 border-b border-slate-700 pb-2">近期成功案例</h3>
-          <div className="space-y-4">
+          <div className="space-y-4 mb-6">
             {successStories.map(story => <SuccessStoryCard key={story.id} story={story} />)}
           </div>
+
+          {/* --- TASK 5: LiveTicker Integration --- */}
+          <LiveTicker />
 
            <div className="mt-auto pt-8 grid grid-cols-3 gap-4 text-center">
              <TrustBadge icon={<UserCheck />} text="真实买家验证" />
@@ -116,53 +132,92 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
 
         {/* Right Side: The Conversion Form */}
         <div className="md:w-1/2 bg-slate-800 p-6 rounded-lg border border-slate-700">
-          
           <div className="bg-slate-700/50 p-4 rounded-lg mb-6">
               <p className="text-sm text-slate-400 flex items-center"><Package className="w-4 h-4 mr-2"/>您申请匹配的产品</p>
               <h3 className="font-bold text-lg text-emerald-400">{initialFormData.productName}</h3>
-              <p className="text-xs text-slate-300 mt-1 line-clamp-2">优势: {initialFormData.productDetails}</p>
           </div>
           
-          <h2 className="font-bold text-xl text-center">完善您的企业资质</h2>
-          <p className="text-center text-sm text-emerald-400 font-semibold mb-6">最后一步，即可免费对接买家 (今日剩余 3 席)</p>
+          <h2 className="font-bold text-xl text-center">供应商实力评估 (3步)</h2>
+          <p className="text-center text-sm text-slate-400 mb-4">完成评估，我们将为您优先匹配买家资源</p>
+          <ProgressBar current={step} total={3} />
           
           <form onSubmit={handleSubmit}>
+            {/* --- Step 1: 企业硬实力 --- */}
             <div style={{ display: step === 1 ? 'block' : 'none' }}>
-              <h3 className="font-semibold mb-4 text-slate-300">第一步: 基础信息</h3>
+              <h3 className="font-semibold mb-4 text-emerald-400 flex items-center"><Building className="w-5 h-5 mr-2"/>第一步: 企业硬实力</h3>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="companyName" className="block text-sm font-medium text-slate-400 mb-1">公司名称</label>
+                  <label htmlFor="companyName" className="block text-sm font-medium text-slate-300 mb-1">公司名称</label>
                   <input type="text" name="companyName" id="companyName" value={formData.companyName} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder='例如：XX电子科技有限公司' required />
                 </div>
                 <div>
-                  <label htmlFor="contactPerson" className="block text-sm font-medium text-slate-400 mb-1">联系人姓名</label>
-                  <input type="text" name="contactPerson" id="contactPerson" value={formData.contactPerson} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2" placeholder='您的姓名' required />
+                  <label htmlFor="establishedYear" className="block text-sm font-medium text-slate-300 mb-1">成立年限</label>
+                  <select name="establishedYear" id="establishedYear" value={formData.establishedYear} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2">
+                    {ESTABLISHED_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
                 </div>
                 <div>
-                  <label htmlFor="position" className="block text-sm font-medium text-slate-400 mb-1">您的职位</label>
-                  <select name="position" id="position" value={formData.position} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2">
-                    <option value="owner">公司法人/股东</option>
-                    <option value="manager">外贸经理/业务主管</option>
-                    <option value="other">其他</option>
+                  <label htmlFor="annualRevenue" className="block text-sm font-medium text-slate-300 mb-1">年出口额 (美元)</label>
+                  <select name="annualRevenue" id="annualRevenue" value={formData.annualRevenue} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2">
+                    {ANNUAL_REVENUES.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
               </div>
               <button type="button" onClick={() => setStep(2)} disabled={!canGoToStep2} className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 font-bold py-2 px-4 rounded-md transition-all disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center">下一步 <ArrowRight className="w-4 h-4 ml-2" /></button>
             </div>
 
+            {/* --- Step 2: 合规与认证 --- */}
             <div style={{ display: step === 2 ? 'block' : 'none' }}>
-              <h3 className="font-semibold mb-4 text-slate-300">第二步: 实力自证</h3>
-              <div className="space-y-5">
-                 <div className="p-3 bg-slate-700/50 rounded-md"><p className="block text-sm font-medium text-slate-400 mb-2">贵司有自主出口权吗？</p><div className="flex gap-4"><button type="button" onClick={() => setFormData(p=>({...p, hasExportRights: true}))} className={`flex-1 p-2 rounded text-sm ${formData.hasExportRights === true ? 'bg-emerald-500' : 'bg-slate-600'}`}>有</button><button type="button" onClick={() => setFormData(p=>({...p, hasExportRights: false}))} className={`flex-1 p-2 rounded text-sm ${formData.hasExportRights === false ? 'bg-rose-500' : 'bg-slate-600'}`}>没有，需代理</button></div></div>
-                 <div className="p-3 bg-slate-700/50 rounded-md"><p className="block text-sm font-medium text-slate-400 mb-2">能否接受 30% 预付款？</p><div className="flex gap-4"><button type="button" onClick={() => setFormData(p=>({...p, accepts30PercentDeposit: true}))} className={`flex-1 p-2 rounded text-sm ${formData.accepts30PercentDeposit === true ? 'bg-emerald-500' : 'bg-slate-600'}`}>能接受</button><button type="button" onClick={() => setFormData(p=>({...p, accepts30PercentDeposit: false}))} className={`flex-1 p-2 rounded text-sm ${formData.accepts30PercentDeposit === false ? 'bg-rose-500' : 'bg-slate-600'}`}>希望调整</button></div></div>
-                 <div>
-                    <label htmlFor="factoryPicture" className="w-full cursor-pointer bg-slate-700/50 p-4 rounded-md flex flex-col items-center justify-center border-2 border-dashed border-slate-600 hover:border-emerald-500"><ImagePlus className="w-8 h-8 text-slate-400 mb-2" /><span className="text-sm text-slate-300">上传工厂/车间实拍图</span><span className="text-xs text-slate-500 mt-1">有图的供应商将获优先匹配</span><input type="file" id="factoryPicture" name="factoryPicture" onChange={handleFileChange} className="hidden" accept="image/*" /></label>
-                    {formData.factoryPicture && <p className="text-xs text-emerald-400 mt-2 text-center">已选择文件: {formData.factoryPicture.name}</p>}
-                 </div>
+              <h3 className="font-semibold mb-4 text-emerald-400 flex items-center"><Shield className="w-5 h-5 mr-2"/>第二步: 合规与认证</h3>
+               <div className="space-y-4">
+                  <div>
+                    <label htmlFor="mainProductCategory" className="block text-sm font-medium text-slate-300 mb-1">主营产品类目</label>
+                    <input type="text" name="mainProductCategory" id="mainProductCategory" value={formData.mainProductCategory} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2" placeholder='例如：LED照明 或 汽车配件' required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">核心认证 (可多选)</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        {CERTIFICATES.map(cert => (
+                            <button type="button" key={cert} onClick={() => handleCertificateChange(cert)} className={`p-2 text-sm rounded-md border ${formData.mainCertificates.includes(cert) ? 'bg-emerald-600 border-emerald-500' : 'bg-slate-700 border-slate-600 hover:bg-slate-600'}`}>
+                                {cert}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-xs text-yellow-400 mt-3 p-2 bg-yellow-900/50 rounded-md">💡 提示：拥有 ISO/BSCI 认证的工厂将获得 3 倍流量推荐。</p>
+                  </div>
+               </div>
+              <div className="flex gap-4 mt-6">
+                <button type="button" onClick={() => setStep(1)} className="w-full bg-slate-600 hover:bg-slate-500 font-bold py-2 px-4 rounded-md transition-all flex items-center justify-center"><ArrowLeft className="w-4 h-4 mr-2" />上一步</button>
+                <button type="button" onClick={() => setStep(3)} disabled={!canGoToStep3} className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold py-2 px-4 rounded-md transition-all disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center">下一步 <ArrowRight className="w-4 h-4 ml-2" /></button>
               </div>
-              <button type="submit" className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 font-bold py-3 px-4 rounded-lg transition-all text-base shadow-[0_0_15px_rgba(34,197,94,0.5)] hover:shadow-[0_0_25px_rgba(34,197,94,0.8)]">提交资质，获取买家联系方式</button>
-               <p className="text-xs text-slate-400 mt-2 text-center">提交后，专属顾问将在24小时内联系您进行核验。</p>
-               <button type="button" onClick={() => setStep(1)} className="text-center w-full text-xs text-slate-500 mt-4 hover:text-slate-300">返回上一步</button>
+            </div>
+
+            {/* --- Step 3: 决策人对接 --- */}
+            <div style={{ display: step === 3 ? 'block' : 'none' }}>
+                <h3 className="font-semibold mb-4 text-emerald-400 flex items-center"><User className="w-5 h-5 mr-2"/>第三步: 决策人对接</h3>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="contactPerson" className="block text-sm font-medium text-slate-300 mb-1">联系人姓名</label>
+                        <input type="text" name="contactPerson" id="contactPerson" value={formData.contactPerson} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2" placeholder='您的姓名' required />
+                    </div>
+                    <div>
+                        <label htmlFor="position" className="block text-sm font-medium text-slate-300 mb-1">您的职位</label>
+                        <select name="position" id="position" value={formData.position} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2">
+                            <option value="owner">公司法人/股东</option>
+                            <option value="manager">外贸经理/业务主管</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label htmlFor="contactPhone" className="block text-sm font-medium text-slate-300 mb-1">手机号</label>
+                        <input type="tel" name="contactPhone" id="contactPhone" value={formData.contactPhone} onChange={handleInputChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2" placeholder='您的手机号码' required />
+                    </div>
+                </div>
+                 <p className="text-xs text-yellow-400 mt-3 p-2 bg-yellow-900/50 rounded-md">🔒 信息将严格保密。为保证对接效率，仅限工厂法人或外贸总监对接。</p>
+                <div className="flex gap-4 mt-6">
+                    <button type="button" onClick={() => setStep(2)} className="w-full bg-slate-600 hover:bg-slate-500 font-bold py-2 px-4 rounded-md transition-all flex items-center justify-center"><ArrowLeft className="w-4 h-4 mr-2" />上一步</button>
+                    <button type="submit" disabled={!canSubmit} className="w-full bg-emerald-500 hover:bg-emerald-600 font-bold py-2 px-4 rounded-lg transition-all text-base shadow-[0_0_15px_rgba(34,197,94,0.5)] hover:shadow-[0_0_25px_rgba(34,197,94,0.8)] disabled:bg-slate-600 disabled:cursor-not-allowed disabled:shadow-none">提交资质，获取买家联系方式</button>
+                </div>
             </div>
 
           </form>

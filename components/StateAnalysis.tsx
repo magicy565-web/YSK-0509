@@ -4,6 +4,7 @@ import {
   Star, Award, Calendar, DollarSign, Package, Factory, CheckCircle2 
 } from 'lucide-react';
 import { AnalysisData, PotentialBuyer, RecommendedBuyer } from '../types';
+import { LiveTicker } from './LiveTicker.tsx'; // TASK 5
 
 interface StateAnalysisProps {
   data: AnalysisData;
@@ -144,7 +145,7 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
     <div className="max-w-6xl mx-auto py-8 animate-fade-in pb-32">
       
       {/* Header Stats */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl shadow-2xl p-8 mb-10 text-center relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl shadow-2xl p-8 mb-4 text-center relative overflow-hidden">
         {/* 背景装饰 */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none"></div>
@@ -168,6 +169,11 @@ export const StateAnalysis: React.FC<StateAnalysisProps> = ({ data, onApprove })
             <div className="text-xs text-slate-400 mt-1 uppercase tracking-wider">完美匹配推荐</div>
           </div>
         </div>
+      </div>
+
+       {/* --- TASK 5: LiveTicker Integration --- */}
+      <div className="mb-8 -mt-2 px-4 md:px-0">
+        <LiveTicker />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
