@@ -1,6 +1,6 @@
+
 import { InfoFormData, AnalysisData, DealData } from "../types";
 
-// --- SECURITY FIX 2: Prompt Injection Hardening ---
 const generateMessages = (formData: InfoFormData) => [
   {
     role: "system",
@@ -59,55 +59,73 @@ OUTPUT FORMAT (CRITICAL): Respond with only the raw JSON object.
 }`
   }
 ];
-// --- End of Security Fix ---
 
-// ... callAAsStream 函数保持不变 ...
-// 注意：如果你之前有改过 callAAsStream 请保留之前的版本，这里为了节省篇幅省略
+const callAAsStream = async (
+  messages: any[],
+  onChunk: (chunk: string) => void,
+  onComplete: () => void,
+  onError: (error: Error) => void
+) => {
+  try {
+    const response = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: "[vertex]gemini-3-pro-preview",
+        messages: messages,
+        stream: true
+      }),
+    });
 
-const callAAsStream = async (messages: any[]): Promise<any> => {
-  // 复用你现有的 callAAsStream 代码，不需要改动
-  // 确保它能 fetch '/api/proxy' 即可
-  const response = await fetch('/api/proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: "[vertex]gemini-3-pro-preview",
-      messages: messages,
-      stream: true
-    }),
-  });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`[Proxy Error] API request failed with status ${response.status}: ${errorText}`);
+    }
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`[Proxy Error] API request failed with status ${response.status}: ${errorText}`);
-  }
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Failed to get response reader for streaming.");
 
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error("Failed to get response reader for streaming.");
+    const decoder = new TextDecoder();
+    let leftover = '';
+    let hasStreamed = false;
 
-  const decoder = new TextDecoder();
-  let fullContent = '';
-  let leftover = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        if (!hasStreamed) {
+          throw new Error("Stream finished without sending any data.");
+        }
+        break;
+      }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = (leftover + chunk).split('\n');
-    leftover = lines.pop() || '';
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const jsonStr = line.substring(6);
-        if (jsonStr === '[DONE]') break;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          fullContent += parsed.choices?.[0]?.delta?.content || '';
-        } catch (e) { console.error("Failed to parse stream chunk:", jsonStr); }
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = (leftover + chunk).split('\n');
+      leftover = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const jsonStr = line.substring(6);
+          if (jsonStr === '[DONE]') {
+            onComplete();
+            return;
+          }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content || '';
+            if (content) {
+              hasStreamed = true;
+              onChunk(content);
+            }
+          } catch (e) {
+            console.warn("Failed to parse a stream chunk, skipping:", jsonStr);
+          }
+        }
       }
     }
+    onComplete();
+  } catch (error: any) {
+    onError(error);
   }
-  const cleanedContent = fullContent.replace(/```json/g, '').replace(/```/g, '').trim();
-  return JSON.parse(cleanedContent);
 };
 
 export const aiService = {
@@ -120,16 +138,12 @@ export const aiService = {
     try {
       console.log(`[AI Analysis] Starting secured streaming analysis for: ${formData.productName}`);
       const messages = generateMessages(formData);
-      const result = await callAAsStream(messages);
-      
-      onChunk(JSON.stringify(result));
-      onComplete();
-      
+      await callAAsStream(messages, onChunk, onComplete, onError);
     } catch (error: any) {
       console.error("🔴 AI STREAMING ANALYSIS FAILED 🔴", error);
       onError(error);
 
-      // [修改] 更新 Fallback 数据以包含 bestMatch
+      // Fallback Data as a safeguard
       const fallbackData: AnalysisData = {
         potentialBuyers: {
           total: 850,

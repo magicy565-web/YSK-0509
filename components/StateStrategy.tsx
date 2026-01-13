@@ -10,8 +10,8 @@ const strategySteps = [
   {
     id: '1',
     timeline: '第一周',
-    serviceStep: 'AI大数据筛选与精准画像',
-    description: '我们运用AI分析海关数据、B2B数据库和社交媒体，识别并描绘出与您产品完美匹配的高意向买家画像。',
+    serviceStep: '海关大数据筛选与画像构建',
+    description: '我们聚合分析海关数据、B2B数据库和企业征信信息，识别并描绘出与您产品完美匹配的高意向买家画像。',
     icon: Search,
   },
   {
