@@ -1,15 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Zap } from 'lucide-react';
-
-// --- TASK 5: Real-time Matchmaking Ticker ---
 
 interface TickerItem {
   id: number;
   text: string;
 }
 
-// Generate a list of realistic, randomized matchmaking events.
 const generateTickerData = (): TickerItem[] => {
   const data = [
     { time: '2分钟前', region: '广东中山', industry: '灯具', name: '李总', action: '成功对接', country: '德国', detail: '意向金额 $50,000' },
@@ -39,7 +35,7 @@ export const LiveTicker = () => {
 
     const interval = setInterval(() => {
       setCurrentIndex(prevIndex => (prevIndex + 1) % items.length);
-    }, 3000); // Rotate every 3 seconds
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [items]);
@@ -61,6 +57,8 @@ export const LiveTicker = () => {
                         transform: `translateY(${(index - currentIndex) * 100}%)`,
                         opacity: index === currentIndex ? 1 : 0
                     }}
+                    // 添加 translate="no"
+                    translate="no"
                 >
                     {item.text}
                 </div>

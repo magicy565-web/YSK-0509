@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 
 interface AnimatedCounterProps {
   target: number;
-  duration?: number; // duration in milliseconds
+  duration?: number;
   label: string;
   className?: string;
 }
@@ -13,6 +12,8 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ target, durati
 
   useEffect(() => {
     let startTime: number | null = null;
+    let animationFrameId: number;
+
     const animationFrame = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = timestamp - startTime;
@@ -20,22 +21,25 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ target, durati
       setCount(currentCount);
 
       if (progress < duration) {
-        requestAnimationFrame(animationFrame);
+        animationFrameId = requestAnimationFrame(animationFrame);
       } else {
         setCount(target);
       }
     };
 
-    requestAnimationFrame(animationFrame);
+    animationFrameId = requestAnimationFrame(animationFrame);
 
     return () => {
-      // Cleanup if needed, though requestAnimationFrame stops itself.
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, [target, duration]);
 
   return (
     <div className={`text-center ${className}`}>
-      <div className="text-4xl font-bold text-emerald-400">
+      {/* 添加 translate="no" 防止浏览器翻译插件修改 DOM 结构导致 React 崩溃 */}
+      <div className="text-4xl font-bold text-emerald-400" translate="no">
         {count.toLocaleString()}
       </div>
       <div className="text-sm text-slate-300 mt-1">{label}</div>
