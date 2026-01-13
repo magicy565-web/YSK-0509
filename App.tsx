@@ -7,7 +7,7 @@ import { StateStrategy } from './components/StateStrategy';
 import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
-import { aiService } from './services/aiService';
+import { aiService } from './src/services/aiService';
 import { AppState, AnalysisData, DealData, InfoFormData, ApplicationPayload } from './types'; // [FIX 8/8] Import ApplicationPayload
 
 const ErrorDisplay = ({ message, onClose }: { message: string, onClose: () => void }) => (
