@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { 
   DealData, 
@@ -119,12 +120,13 @@ interface StateDealProps {
 
 export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove }) => {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<FactoryQualification>({
+  const [formData, setFormData] = useState<Omit<FactoryQualification, 'businessLicense'>>({
     companyName: '', establishedYear: ESTABLISHED_YEARS[0], annualRevenue: ANNUAL_REVENUES[0],
-    mainProductCategory: '', mainCertificates: [],
-    businessLicense: null, factoryPhotos: [], productCertificates: [],
+    mainProductCategory: initialFormData.productName, mainCertificates: [],
+    factoryPhotos: [], productCertificates: [],
     contactPerson: '', position: 'manager', contactPhone: '',
   });
+  const [businessLicense, setBusinessLicense] = useState<File | null>(null);
   const [ndaAccepted, setNdaAccepted] = useState(true);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -143,12 +145,14 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onApprove(formData);
+    if (businessLicense) {
+        onApprove({ ...formData, businessLicense });
+    }
   };
 
   const canGoToStep2 = formData.companyName && formData.establishedYear && formData.annualRevenue;
   const canGoToStep3 = formData.mainProductCategory && formData.mainCertificates.length > 0;
-  const canGoToStep4 = formData.businessLicense !== null && formData.factoryPhotos.length > 0;
+  const canGoToStep4 = businessLicense !== null && formData.factoryPhotos.length > 0;
   const canSubmit = formData.contactPerson && formData.position && /^1[3-9]\d{9}$/.test(formData.contactPhone);
 
   return (
@@ -267,8 +271,8 @@ export const StateDeal: React.FC<StateDealProps> = ({ initialFormData, onApprove
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <ImageUploadField 
                         label="营业执照" subLabel="(必传)"
-                        files={formData.businessLicense ? [formData.businessLicense] : []}
-                        onFilesChange={(files) => setFormData(p => ({ ...p, businessLicense: files[0] || null }))}
+                        files={businessLicense ? [businessLicense] : []}
+                        onFilesChange={(files) => setBusinessLicense(files[0] || null)}
                     />
                     <ImageUploadField 
                         label="工厂/车间实拍" subLabel="(必传, 1-5张)"

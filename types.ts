@@ -1,3 +1,4 @@
+
 // types.ts
 
 export enum AppState {
@@ -14,7 +15,6 @@ export interface InfoFormData {
   targetMarket: string;
 }
 
-// 基础买家信息 (用于普通列表)
 export interface PotentialBuyer {
   id: number;
   name: string;
@@ -24,56 +24,46 @@ export interface PotentialBuyer {
   buyerType: string;
 }
 
-// [新增] 推荐买家详细信息 (用于高亮展示)
 export interface RecommendedBuyer extends PotentialBuyer {
-  matchScore: number;       // 匹配度 (例如 98)
-  companyMasked: string;    // 模糊处理的公司名 (例如 "North Am*** Trading")
-  productScope: string;     // 意向采购范围
-  factoryPreference: string;// 偏好的工厂类型 (例如 "有OEM经验", "源头工厂")
-  qualifications: string[]; // 需要的资质 (例如 ["ISO9001", "UL"])
-  joinDate: string;         // 加入平台时间
-  lastOrderSize: string;    // 最近一次采购规模 (模糊处理)
+  matchScore: number;
+  companyMasked: string;
+  productScope: string;
+  factoryPreference: string;
+  qualifications: string[];
+  joinDate: string;
+  lastOrderSize: string;
 }
 
 export interface AnalysisData {
   potentialBuyers: {
     total: number;
-    // [修改] 增加 bestMatch 字段
     bestMatch?: RecommendedBuyer;
     top10?: PotentialBuyer[];
   };
 }
 
-// --- TASK 4: "Industrial-Grade" Qualification Form ---
-
 export const CERTIFICATES = ["ISO9001", "BSCI", "CE", "UL", "FDA", "其他"];
 export const ESTABLISHED_YEARS = ["1-3年", "3-5年", "5-10年", "10年以上"];
 export const ANNUAL_REVENUES = ["<100万", "100-500万", "500-1000万", ">1000万"];
 
-// [修改] 更新 FactoryQualification 接口
 export interface FactoryQualification {
-  // Step 1: 企业硬实力
   companyName: string;
   establishedYear: string; 
   annualRevenue: string;
-  
-  // Step 2: 合规与认证
   mainProductCategory: string;
   mainCertificates: string[];
-
-  // Step 3: 实力证明(图片)
-  businessLicense: File | null; // 营业执照
-  factoryPhotos: File[];        // 真实车间图
-  productCertificates: File[];  // 证书扫描件
-
-  // Step 4: 决策人对接 (原 Step 3)
+  businessLicense: File;
+  factoryPhotos: File[];
+  productCertificates: File[];
   contactPerson: string;
   position: 'owner' | 'manager' | 'other';
   contactPhone: string;
 }
 
-
 export type DealData = FactoryQualification;
+
+// [FIX 6/8] Create a unified payload type for submission
+export type ApplicationPayload = FactoryQualification & InfoFormData;
 
 export interface SuccessCase {
   id: string;

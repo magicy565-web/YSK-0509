@@ -3,12 +3,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { InfoForm } from './components/InfoForm';
 import { StateAnalysis } from './components/StateAnalysis';
-import { StateStrategy } from './components/StateStrategy'; // TASK 8: Re-import
+import { StateStrategy } from './components/StateStrategy';
 import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
 import { aiService } from './services/aiService';
-import { AppState, AnalysisData, DealData, FactoryQualification, InfoFormData } from './types';
+import { AppState, AnalysisData, DealData, InfoFormData, ApplicationPayload } from './types'; // [FIX 8/8] Import ApplicationPayload
 
 const ErrorDisplay = ({ message, onClose }: { message: string, onClose: () => void }) => (
   <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
@@ -28,11 +28,10 @@ function App() {
   
   const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
-  const [dealData, setDealData] = useState<DealData | null>(null);
   const [streamedAnalysis, setStreamedAnalysis] = useState("");
 
-  const [loadingStep, setLoadingStep] = useState(1); // 1, 2, 3
-  const [loadingProgress, setLoadingProgress] = useState(0); // 0-100
+  const [loadingStep, setLoadingStep] = useState(1); 
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   const loadingTimers = useRef<NodeJS.Timeout[]>([]);
 
@@ -52,7 +51,7 @@ function App() {
     setLoadingProgress(0);
 
     const startTime = Date.now();
-    const duration = 45000; // 45s total duration
+    const duration = 45000; // 45s
 
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -113,28 +112,36 @@ function App() {
       try {
         const parsed = JSON.parse(streamedAnalysis);
         setAnalysisData(parsed);
-      } catch (e) { /* Incomplete JSON, wait for more data */ }
+      } catch (e) { /* Incomplete JSON */ }
     }
   }, [streamedAnalysis]);
 
-  // TASK 8: Restore the correct flow to the STRATEGY state
   const handleAnalysisApproved = () => {
     setCurrentState(AppState.STRATEGY);
   };
 
-  // TASK 8: Add the handler to move from STRATEGY to DEAL
   const handleStrategyApproved = () => {
     setCurrentState(AppState.DEAL);
   };
 
-  const handleApproveDeal = async (finalDealData: DealData) => {
-      setDealData(finalDealData);
+  const handleDealApproval = async (dealData: DealData) => { // [FIX 8/8] The function name was handleApproveDeal, changed for consistency
+      if (!infoFormData) {
+        setError("关键产品信息丢失，请刷新重试。");
+        return;
+      }
+      
+      // [FIX 8/8] Combine initial form data and deal data into the complete payload
+      const applicationPayload: ApplicationPayload = {
+        ...infoFormData,
+        ...dealData,
+      };
+
       setIsLoading(true);
       setLoadingMessage('正在提交您的资质申请以供审核...');
       setError(null);
 
       try {
-        await aiService.submitApplication(finalDealData);
+        await aiService.submitApplication(applicationPayload); // Pass the unified payload
         setCurrentState(AppState.SUCCESS);
       } catch (err: any) { 
         console.error(err);
@@ -155,13 +162,12 @@ function App() {
         
         {currentState === AppState.ANALYSIS && analysisData && <StateAnalysis data={analysisData} onApprove={handleAnalysisApproved} />}
         
-        {/* TASK 8: Re-add StateStrategy to the render logic */}
         {currentState === AppState.STRATEGY && <StateStrategy onApprove={handleStrategyApproved} />}
         
         {currentState === AppState.DEAL && infoFormData && (
           <StateDeal 
             initialFormData={infoFormData} 
-            onApprove={handleApproveDeal} 
+            onApprove={handleDealApproval} // [FIX 8/8] Use the correct handler function
           />
         )}
         
