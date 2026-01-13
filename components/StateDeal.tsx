@@ -24,7 +24,7 @@ const successStories: SuccessCase[] = [
     title: '河北沧州管件厂 → 俄罗斯新市场',
     tags: ['管道配件', '俄罗斯', '精准匹配'],
     imageUrl: base64Placeholder,
-    description: '工厂虽有外贸团队，但一直无法打入俄罗斯市场。通过我们对买家需求的精准分析，成功匹配并签约了第一家当地大型分销商。',
+    description: '工厂虽有外贸团队，但一直无法打入俄罗斯市场。通过我们第一周的“海关数据筛选”，第二周的“本地化开发”，成功在第三周将一个真实的、匹配的买家询盘移交给他们，并最终签约了当地大型分销商。',
     metrics: [{ label: '核心价值', value: '打破市场壁垒' }, { label: '关键成果', value: '签约新区域分销商' }],
   },
 ];
@@ -34,7 +34,12 @@ const TrustBadge = ({ icon, text }: { icon: React.ReactNode; text: string }) => 
   <div className="flex items-center text-sm text-slate-300"><span className="text-emerald-500 mr-2">{icon}</span>{text}</div>
 );
 
-const SuccessStoryCard = ({ story }: { story: SuccessCase }) => (
+// --- FIX: Add a proper interface for the props and define the component as a React.FC
+interface SuccessStoryCardProps {
+    story: SuccessCase;
+}
+
+const SuccessStoryCard: React.FC<SuccessStoryCardProps> = ({ story }) => (
     <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 hover:border-emerald-500 transition-all">
       <h4 className="font-bold text-emerald-400">{story.title}</h4>
       <p className="text-sm text-slate-300 mt-1 mb-3">{story.description}</p>
