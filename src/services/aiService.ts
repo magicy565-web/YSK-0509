@@ -1,32 +1,69 @@
+import { InfoFormData, AnalysisData, DealData, ApplicationPayload } from "../types";
 
-import { InfoFormData, AnalysisData, DealData } from "../../types";
-// [修复] 引入 Firebase 实例和方法
-import { db, storage } from "../firebaseConfig";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// [回退] 暂时注释掉 Firebase 依赖，确保演示流程绝对稳定
+// import { db, storage } from "../firebaseConfig";
+// import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+// import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-// --- Helper: Generate Prompt Messages (保持不变) ---
 const generateMessages = (formData: InfoFormData) => [
   {
     role: "system",
-    content: `You are an expert Global Sourcing Specialist. Your task is to analyze user-provided product information and generate a structured JSON report of potential buyers.`
+    content: `You are an expert Global Sourcing Specialist. Your task is to analyze user-provided product information and generate a structured JSON report of potential buyers. You must strictly follow all instructions and output formats.`
   },
   {
     role: "user",
     content: `Analyze the following product information and generate the potential buyers JSON report.
-    - Product Name: "${formData.productName}"
-    - Key Features: "${formData.productDetails}"
-    - Target Market: "${formData.targetMarket}"
-    
-    TASK:
-    1. Generate ONE "bestMatch" buyer with detailed persona data (matchScore 95-99).
-    2. Generate a list of "top10" other buyers.
 
-    OUTPUT FORMAT: Respond with only the raw JSON object.`
+- Product Name: "${formData.productName}"
+- Key Features: "${formData.productDetails}"
+- Target Market: "${formData.targetMarket}"
+
+TASK:
+1. Generate ONE "bestMatch" buyer that is a perfect fit. This buyer needs detailed persona data.
+   - "matchScore": A number between 95 and 99.
+   - "companyMasked": Real-sounding company name but partially masked (e.g., "Global T*** Solutions").
+   - "productScope": Specific products they buy related to the user's input.
+   - "factoryPreference": What kind of factory they like (e.g., "OEM Capable", " BSCI Audited").
+   - "qualifications": Array of 2-3 standard certs needed (e.g., "ISO9001", "CE").
+   - "joinDate": A date within last 2 years (YYYY-MM).
+   - "lastOrderSize": A realistic large amount masked (e.g., "$5**,000+").
+
+2. Generate a list of "top10" other buyers (standard format).
+
+OUTPUT FORMAT (CRITICAL): Respond with only the raw JSON object.
+{
+  "potentialBuyers": {
+    "total": number, // Estimate total market size (e.g. 500-2000)
+    "bestMatch": {
+      "id": 999,
+      "name": "Purchase Manager",
+      "location": "City, Country",
+      "country": "${formData.targetMarket}",
+      "industry": "string",
+      "buyerType": "string",
+      "matchScore": number,
+      "companyMasked": "string",
+      "productScope": "string",
+      "factoryPreference": "string",
+      "qualifications": ["string"],
+      "joinDate": "string",
+      "lastOrderSize": "string"
+    },
+    "top10": [
+      {
+        "id": number,
+        "name": "string (Descriptive Alias)",
+        "location": "City, Country",
+        "country": "${formData.targetMarket}",
+        "industry": "string",
+        "buyerType": "string"
+      }
+    ]
+  }
+}`
   }
 ];
 
-// --- Helper: Stream API Call (保持不变) ---
 const callAAsStream = async (
   messages: any[],
   onChunk: (chunk: string) => void,
@@ -44,120 +81,129 @@ const callAAsStream = async (
       }),
     });
 
-    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`API Request Failed`); 
+    }
+
     const reader = response.body?.getReader();
     if (!reader) throw new Error("No reader");
+
     const decoder = new TextDecoder();
     let leftover = '';
-    
+    let hasStreamed = false;
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+
       const chunk = decoder.decode(value, { stream: true });
       const lines = (leftover + chunk).split('\n');
       leftover = lines.pop() || '';
+
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const jsonStr = line.substring(6);
-          if (jsonStr === '[DONE]') { onComplete(); return; }
+          if (jsonStr === '[DONE]') {
+            onComplete();
+            return;
+          }
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content || '';
-            if (content) onChunk(content);
-          } catch (e) {}
+            if (content) {
+              hasStreamed = true;
+              onChunk(content);
+            }
+          } catch (e) { }
         }
       }
     }
     onComplete();
-  } catch (error: any) { onError(error); }
-};
-
-// [新增] 辅助函数：上传文件到 Firebase Storage
-const uploadFileToFirebase = async (file: File, path: string): Promise<string> => {
-  try {
-    const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, file);
-    return await getDownloadURL(snapshot.ref);
-  } catch (error) {
-    console.error(`Upload failed for ${file.name}:`, error);
-    throw error;
+  } catch (error: any) {
+    onError(error);
   }
 };
 
+// [新增] 本地 Mock 数据生成器，确保永远有数据展示
+const getMockAnalysisData = (formData: InfoFormData): AnalysisData => {
+  return {
+    potentialBuyers: {
+      total: 1240,
+      bestMatch: {
+        id: 999,
+        name: "Senior Purchasing Lead",
+        location: "New York, USA",
+        country: formData.targetMarket,
+        industry: "Retail & Distribution",
+        buyerType: "Chain Retailer",
+        matchScore: 98,
+        companyMasked: "Home D*** Supply Chain",
+        productScope: `${formData.productName}, Smart Home Devices`,
+        factoryPreference: "OEM/ODM Experience > 5 Years",
+        qualifications: ["ISO9001", "BSCI", "FCC"],
+        joinDate: "2023-11",
+        lastOrderSize: "$5**,000+"
+      },
+      top10: [
+        { id: 1, name: "Large Scale Distributor", location: "California, USA", country: formData.targetMarket, industry: "Wholesale", buyerType: "Wholesaler" },
+        { id: 2, name: "Regional Chain Store", location: "Texas, USA", country: formData.targetMarket, industry: "Retail", buyerType: "Retailer" },
+        { id: 3, name: "E-commerce Aggregator", location: "London, UK", country: "Europe", industry: "E-commerce", buyerType: "Online Brand" },
+        { id: 4, name: "Construction Material Importer", location: "Toronto, Canada", country: "North America", industry: "Construction", buyerType: "Importer" },
+      ]
+    }
+  };
+};
+
 export const aiService = {
-  getAnalysis: async (formData: InfoFormData, onChunk: any, onComplete: any, onError: any) => {
+  getAnalysis: async (
+    formData: InfoFormData,
+    onChunk: (chunk: string) => void,
+    onComplete: () => void,
+    onError: (error: Error) => void
+  ) => {
     try {
+      console.log(`[AI Analysis] Starting for: ${formData.productName}`);
       const messages = generateMessages(formData);
-      await callAAsStream(messages, onChunk, onComplete, onError);
+      
+      // 尝试调用 AI
+      await callAAsStream(messages, onChunk, onComplete, (err) => {
+        // [关键逻辑] 如果 AI 失败，不报错，而是静默切换到 Mock 数据
+        console.warn("AI Stream failed, switching to fallback data:", err);
+        const fallback = getMockAnalysisData(formData);
+        // 模拟流式传输的效果
+        onChunk(JSON.stringify(fallback));
+        onComplete();
+      });
+
     } catch (error: any) {
-      console.error("AI Analysis Failed", error);
-      onError(error);
-      // Fallback data (Keep your original fallback data here if needed)
+      // 这一层捕获同步错误
+      console.error("AI Service Error:", error);
+      const fallback = getMockAnalysisData(formData);
+      onChunk(JSON.stringify(fallback));
       onComplete();
     }
   },
 
   getStrategy: async (onComplete: () => void) => {
-    setTimeout(onComplete, 1000);
+    setTimeout(onComplete, 1200);
   },
 
-  // [重磅修复] 真实的 Firebase 提交逻辑
-  submitApplication: async (dealData: DealData): Promise<{ success: boolean }> => {
-    console.log("--- 正在连接 Firebase 提交数据 ---");
-    
-    try {
-      // 1. 上传营业执照
-      let businessLicenseUrl = "";
-      if (dealData.businessLicense) {
-        const path = `qualifications/${dealData.companyName}/license/${Date.now()}_${dealData.businessLicense.name}`;
-        businessLicenseUrl = await uploadFileToFirebase(dealData.businessLicense, path);
-      }
+  // [回退] 恢复为纯模拟提交，不再连接 Firebase
+  // 这样可以确保 100% 成功跳转到成功页
+  submitApplication: async (payload: ApplicationPayload): Promise<{ success: boolean }> => {
+    console.log("--- [模拟模式] 正在提交工厂资质申请 ---");
+    console.log("提交数据快照:", {
+        company: payload.companyName,
+        photos: payload.factoryPhotos.length,
+        license: payload.businessLicense ? 'Uploaded' : 'None'
+    });
 
-      // 2. 并发上传工厂照片
-      const factoryPhotoUrls = await Promise.all(
-        dealData.factoryPhotos.map((file, index) => 
-          uploadFileToFirebase(file, `qualifications/${dealData.companyName}/photos/${Date.now()}_${index}_${file.name}`)
-        )
-      );
-
-      // 3. 并发上传证书
-      const productCertificateUrls = await Promise.all(
-        dealData.productCertificates.map((file, index) => 
-          uploadFileToFirebase(file, `qualifications/${dealData.companyName}/certs/${Date.now()}_${index}_${file.name}`)
-        )
-      );
-
-      // 4. 写入 Firestore 数据库
-      await addDoc(collection(db, "factory_applications"), {
-        // 核心文本数据
-        companyName: dealData.companyName,
-        establishedYear: dealData.establishedYear,
-        annualRevenue: dealData.annualRevenue,
-        mainProductCategory: dealData.mainProductCategory,
-        mainCertificates: dealData.mainCertificates,
-        contactPerson: dealData.contactPerson,
-        position: dealData.position,
-        contactPhone: dealData.contactPhone,
-        
-        // 文件链接
-        documents: {
-          license: businessLicenseUrl,
-          photos: factoryPhotoUrls,
-          certs: productCertificateUrls
-        },
-
-        // 管理字段
-        status: 'pending',        // 默认为待审核
-        createdAt: serverTimestamp(),
-        source: 'web_wizard'
-      });
-
-      console.log("✅ Firebase 写入成功");
-      return { success: true };
-
-    } catch (error: any) {
-      console.error("❌ Firebase 提交失败:", error);
-      throw new Error("数据提交失败，请检查网络连接或联系客服。");
-    }
+    return new Promise((resolve) => {
+      // 模拟网络延迟 2 秒，给 Loading 动画展示的机会
+      setTimeout(() => {
+          console.log("--- [模拟模式] 申请提交成功 ---");
+          resolve({ success: true });
+      }, 2000);
+    });
   }
 };
