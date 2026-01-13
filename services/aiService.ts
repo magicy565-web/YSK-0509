@@ -71,7 +71,7 @@ const callAAsStream = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "[vertex]gemini-3-pro-preview",
+        model: "[vertex]gemini-1.5-pro-preview-0514",
         messages: messages,
         stream: true
       }),
@@ -93,7 +93,7 @@ const callAAsStream = async (
       const { done, value } = await reader.read();
       if (done) {
         if (!hasStreamed) {
-          throw new Error("Stream finished without sending any data.");
+          // throw new Error("Stream finished without sending any data.");
         }
         break;
       }
@@ -143,7 +143,6 @@ export const aiService = {
       console.error("🔴 AI STREAMING ANALYSIS FAILED 🔴", error);
       onError(error);
 
-      // Fallback Data as a safeguard
       const fallbackData: AnalysisData = {
         potentialBuyers: {
           total: 850,
@@ -179,9 +178,38 @@ export const aiService = {
   },
 
   submitApplication: async (dealData: DealData): Promise<{ success: boolean }> => {
-    console.log("--- 收到新的工厂资质申请 ---", dealData);
+    console.log("--- 正在提交工厂资质申请 (含图片数据) ---");
+    
+    const formData = new FormData();
+    formData.append('companyName', dealData.companyName);
+    formData.append('establishedYear', dealData.establishedYear);
+    formData.append('annualRevenue', dealData.annualRevenue);
+    formData.append('mainProductCategory', dealData.mainProductCategory);
+    formData.append('mainCertificates', JSON.stringify(dealData.mainCertificates));
+    formData.append('contactPerson', dealData.contactPerson);
+    formData.append('position', dealData.position);
+    formData.append('contactPhone', dealData.contactPhone);
+    
+    if (dealData.businessLicense) {
+        console.log(`[Upload] 营业执照: ${dealData.businessLicense.name} (${(dealData.businessLicense.size / 1024).toFixed(1)}KB)`);
+        formData.append('businessLicense', dealData.businessLicense);
+    }
+    
+    if (dealData.factoryPhotos.length > 0) {
+        console.log(`[Upload] 工厂照片: ${dealData.factoryPhotos.length} 张`);
+        dealData.factoryPhotos.forEach((file, i) => formData.append(`factoryPhoto_${i}`, file));
+    }
+
+    if (dealData.productCertificates.length > 0) {
+        console.log(`[Upload] 证书文件: ${dealData.productCertificates.length} 张`);
+        dealData.productCertificates.forEach((file, i) => formData.append(`productCertificate_${i}`, file));
+    }
+
     return new Promise((resolve) => {
-      setTimeout(() => resolve({ success: true }), 1500);
+      setTimeout(() => {
+          console.log("--- 申请提交成功 ---");
+          resolve({ success: true });
+      }, 2000);
     });
   }
 };

@@ -50,6 +50,7 @@ export const CERTIFICATES = ["ISO9001", "BSCI", "CE", "UL", "FDA", "其他"];
 export const ESTABLISHED_YEARS = ["1-3年", "3-5年", "5-10年", "10年以上"];
 export const ANNUAL_REVENUES = ["<100万", "100-500万", "500-1000万", ">1000万"];
 
+// [修改] 更新 FactoryQualification 接口
 export interface FactoryQualification {
   // Step 1: 企业硬实力
   companyName: string;
@@ -60,7 +61,12 @@ export interface FactoryQualification {
   mainProductCategory: string;
   mainCertificates: string[];
 
-  // Step 3: 决策人对接
+  // Step 3: 实力证明(图片)
+  businessLicense: File | null; // 营业执照
+  factoryPhotos: File[];        // 真实车间图
+  productCertificates: File[];  // 证书扫描件
+
+  // Step 4: 决策人对接 (原 Step 3)
   contactPerson: string;
   position: 'owner' | 'manager' | 'other';
   contactPhone: string;
