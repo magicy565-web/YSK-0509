@@ -1,4 +1,4 @@
-import { InfoFormData, AnalysisData, DealData, ApplicationPayload } from "../types";
+import { InfoFormData, AnalysisData, DealData, ApplicationPayload } from "../../types";
 
 // [回退] 暂时注释掉 Firebase 依赖，确保演示流程绝对稳定
 // import { db, storage } from "../firebaseConfig";

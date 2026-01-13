@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, ShieldCheck, Search, Users, Briefcase, X, Check, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Search, Users, Briefcase, Check, ArrowRight } from 'lucide-react';
 
 interface Props {
   onApprove: () => void;
@@ -13,30 +13,48 @@ export const StateStrategy: React.FC<Props> = ({ onApprove }) => {
       {/* Header */}
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">
-          仅需 1 步，加入【出海严选】核心供应链
+          仅需 3 步，加入【出海严选】核心供应链
         </h2>
         <p className="text-slate-500 mt-4 text-lg max-w-2xl mx-auto">
-          我们打破传统 B2B 平台的“卖铲子”模式。我们不赚您的会员费，我们做您的<span className="text-emerald-600 font-bold">海外合伙人</span>，为您链接真实订单。
+          我们打破传统 B2B 平台的“卖铲子”模式。我们做您的<span className="text-emerald-600 font-bold">海外合伙人</span>，为您链接真实订单。
         </p>
       </div>
 
       {/* --- 图形化流程 (The Graphic) --- */}
-      <div className="grid grid-cols-1 gap-6 mb-16 relative">
-        {/* 连接线 (仅在大屏显示) */}
+      <div className="grid md:grid-cols-3 gap-8 mb-16">
         
-        {/* Step 1: 提交资料 */}
+        {/* Step 1: 核心实力认证 */}
         <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
-          <div className="mb-4 inline-block">
-            <div className="p-3 bg-emerald-100 rounded-full">
-              <Briefcase className="w-8 h-8 text-emerald-600" />
-            </div>
+          <div className="mb-4 inline-block bg-emerald-100 rounded-full p-3">
+            <Briefcase className="w-8 h-8 text-emerald-600" />
           </div>
-          <h3 className="text-lg font-bold text-slate-800 mb-2">第 1 步: 提交工厂资料</h3>
+          <h3 className="text-lg font-bold text-slate-800 mb-2">第 1 步: 核心实力认证</h3>
           <p className="text-sm text-slate-500">
-            仅需 3 分钟，在线提交您的工厂基本情况、核心产品和优势。所有资料将被严格保密，仅用于匹配和验厂。
+            在线提交您的工厂信息、产品优势与资质认证。AI 将基于此进行深度分析，构建您的专属实力档案。
           </p>
         </div>
 
+        {/* Step 2: AI 精准匹配 */}
+        <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-emerald-500 text-center">
+           <div className="mb-4 inline-block bg-emerald-100 rounded-full p-3">
+            <Search className="w-8 h-8 text-emerald-600" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-800 mb-2">第 2 步: AI 精准匹配</h3>
+          <p className="text-sm text-slate-500">
+            我们的 AI 引擎将您的实力档案与全球买家需求库进行毫秒级匹配，筛选出最匹配的潜在买家。
+          </p>
+        </div>
+        
+        {/* Step 3: 链接全球买家 */}
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
+           <div className="mb-4 inline-block bg-emerald-100 rounded-full p-3">
+            <Users className="w-8 h-8 text-emerald-600" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-800 mb-2">第 3 步: 链接全球买家</h3>
+          <p className="text-sm text-slate-500">
+            获取为您量身定制的买家报告，并授权我们为您进行下一步链接。高效、精准、结果导向。
+          </p>
+        </div>
       </div>
 
       {/* Trust & Safety */}
