@@ -167,7 +167,19 @@ function App() {
 
         {currentState === AppState.FORM && <InfoForm onSubmit={handleFormSubmit} />}
         
-        {currentState === AppState.ANALYSIS && analysisData && <StateAnalysis data={analysisData} onApprove={handleAnalysisApproved} />}
+        {currentState === AppState.ANALYSIS && (
+  analysisData ? (
+    <StateAnalysis 
+        data={analysisData} 
+        onApprove={handleAnalysisApproved} 
+        // [新增] 传递目标市场信息，默认为 Global
+        region={infoFormData?.targetMarket || 'Global'} 
+    />
+  ) : (
+    // ... 原有的 Error/Loading 兜底代码 ...
+    <div className="...">...</div>
+  )
+)}
         
         {currentState === AppState.STRATEGY && <StateStrategy onApprove={handleStrategyApproved} />}
         
