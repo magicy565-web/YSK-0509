@@ -6,6 +6,7 @@ export default async function handler(req, res) {
   // --- 调试代码开始 ---
   console.log("正在尝试提交...");
   console.log("Token状态:", process.env.HUBSPOT_ACCESS_TOKEN ? "✅ 已读取" : "❌ 未找到 (是 undefined)");
+  console.log("前端发送的数据:", req.body);
   // --- 调试代码结束 ---
 
   // 1. Handle CORS
@@ -28,18 +29,21 @@ export default async function handler(req, res) {
       const hubspotClient = new Client({
         accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       });
-      const { companyName, contactPerson, contactPhone } = req.body;
 
       const dealResponse = await hubspotClient.crm.deals.basicApi.create({
         properties: {
-          dealname: `${companyName} - 入驻申请`,
-          pipeline: 'default',
-          dealstage: 'appointmentscheduled',
-          factory_name: companyName
+            "dealname": req.body.companyName ? `${req.body.companyName} - 入驻申请` : "新申请",
+            "pipeline": "default",
+            "dealstage": "appointmentscheduled",
+            "factory_name": req.body.companyName,
+            "product_keywords": req.body.keywords,
+            "contact_person": req.body.contactPerson,
+            "contact_phone": req.body.phone,
+            "core_advantages": req.body.advantages
         }
       });
 
-      const landingPageUrl = `https://244873556.hs-sites-na2.com/factory-profile-template?name=${encodeURIComponent(companyName)}&id=${dealResponse.id}`;
+      const landingPageUrl = `https://244873556.hs-sites-na2.com/factory-profile-template?name=${encodeURIComponent(req.body.companyName)}&id=${dealResponse.id}`;
 
       return res.status(200).json({
         success: true,
