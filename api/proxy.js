@@ -1,34 +1,25 @@
 
-import fetch from 'node-fetch';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const API_ENDPOINT = "https://api.nova-oss.com/v1/chat/completions";
-const START_TIMEOUT = 30000;
+// /api/proxy.js
+const API_ENDPOINT = 'https://api.nova-oss.com/v1/chat/completions';
+const START_TIMEOUT = 1000 * 30; // 30 seconds
 
 export default async function handler(req, res) {
+  // 1. Set up CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // 1. Handle CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Or your frontend domain
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  // Handle OPTIONS preflight request
+  // 2. Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
-
+  // 3. Ensure it's a POST request
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
+  // 4. Main proxy logic
   const { model, messages, stream } = req.body;
 
   if (!model || !messages) {
@@ -37,7 +28,8 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.NOVAI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'NOVAI_API_KEY is not configured.' });
+    console.error("NOVAI_API_KEY is not configured on the server.");
+    return res.status(500).json({ error: 'Server configuration error.' });
   }
 
   const controller = new AbortController();
@@ -59,13 +51,17 @@ export default async function handler(req, res) {
 
     clearTimeout(timeoutId);
 
-    if (stream) {
-      res.setHeader('Content-Type', aiResponse.headers.get('Content-Type') || 'text/event-stream');
-      aiResponse.body.pipe(res);
-    } else {
-      const data = await aiResponse.json();
-      res.status(aiResponse.status).json(data);
+    // Correctly handle the JSON response (non-streaming)
+    const aiData = await aiResponse.json();
+
+    // If the AI service returned an error, forward it
+    if (!aiResponse.ok) {
+      console.error("Error from NovAI API:", aiData);
+      return res.status(aiResponse.status).json(aiData);
     }
+    
+    // Send the successful JSON response back to the client
+    res.status(200).json(aiData);
 
   } catch (error) {
     clearTimeout(timeoutId);
@@ -73,7 +69,7 @@ export default async function handler(req, res) {
     if (error.name === 'AbortError') {
       return res.status(504).json({ 
         error: 'Gateway Timeout', 
-        message: `The AI service failed to send a response within ${START_TIMEOUT / 1000} seconds.`
+        message: `The AI service failed to respond within ${START_TIMEOUT / 1000} seconds.`
       });
     }
     
