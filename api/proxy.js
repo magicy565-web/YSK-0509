@@ -1,124 +1,83 @@
 
-export const config = {
-  runtime: 'edge',
-};
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
 
-// A more robust proxy for NovAI with streaming and better error handling
-export default async function handler(req) {
-  // 1. Handle preflight requests for CORS
+dotenv.config();
+
+const API_ENDPOINT = "https://api.nova-oss.com/v1/chat/completions";
+const START_TIMEOUT = 30000;
+
+export default async function handler(req, res) {
+
+  // 1. Handle CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Or your frontend domain
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  // Handle OPTIONS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    });
+    res.status(200).end();
+    return;
   }
 
-  // 2. Basic validation
+
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  // 3. Get API Key and define Base URLs
+  const { model, messages, stream } = req.body;
+
+  if (!model || !messages) {
+    return res.status(400).json({ error: 'Missing model or messages in request body' });
+  }
+
   const apiKey = process.env.NOVAI_API_KEY;
-  const primaryBaseUrl = process.env.NOVAI_BASE_URL || "https://once-cf.novai.su/v1/chat/completions";
-  // [NEW] Add a fallback URL. This is a public test endpoint.
-  const fallbackBaseUrl = "https://openrouter.ai/api/v1/chat/completions"; 
-
   if (!apiKey) {
-    console.error('[Proxy Error] NOVAI_API_KEY is not set.');
-    return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(500).json({ error: 'NOVAI_API_KEY is not configured.' });
   }
 
-  const tryRequest = async (url, headers, body) => {
-    console.log(`[Proxy] Attempting to forward request to ${url}`);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.warn(`[Proxy] Request to ${url} failed with status ${response.status}:`, errorBody);
-        throw new Error(`Upstream request failed with status ${response.status}`);
-    }
-    
-    console.log(`[Proxy] Request to ${url} was successful.`);
-    return response;
-  };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.warn(`AI request timed out after ${START_TIMEOUT / 1000}s`);
+    controller.abort();
+  }, START_TIMEOUT);
 
   try {
-    const { model, messages, stream } = await req.json();
-
-    if (!model || !messages) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: model and messages' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const headers = {
+    const aiResponse = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        // [NEW] OpenRouter requires this header
-        'HTTP-Referer': 'https://your-app-name.com', 
-        'X-Title': 'Your App Name',
-    };
-    const body = { model, messages, stream, temperature: 0.7 };
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({ model, messages, stream }),
+      signal: controller.signal
+    });
 
-    let backendResponse;
-    try {
-        // Try primary URL first
-        backendResponse = await tryRequest(primaryBaseUrl, headers, body);
-    } catch (error) {
-        console.warn('[Proxy] Primary URL failed. Trying fallback...');
-        // If primary fails, try the fallback
-        // Note: The model might need to be adjusted for the fallback service.
-        // For OpenRouter, you can use models like "gryphe/mythomax-l2-13b".
-        const fallbackBody = { ...body, model: 'gryphe/mythomax-l2-13b' }; 
-        backendResponse = await tryRequest(fallbackBaseUrl, headers, fallbackBody);
-    }
-    
-    // 6. Handle streaming or non-streaming responses
-    if (stream && backendResponse.body) {
-        return new Response(backendResponse.body, {
-            status: backendResponse.status,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'text/event-stream; charset=utf-8',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-            },
-        });
+    clearTimeout(timeoutId);
+
+    if (stream) {
+      res.setHeader('Content-Type', aiResponse.headers.get('Content-Type') || 'text/event-stream');
+      aiResponse.body.pipe(res);
     } else {
-        const data = await backendResponse.json();
-        return new Response(JSON.stringify(data), {
-            status: backendResponse.status,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'application/json',
-            },
-        });
+      const data = await aiResponse.json();
+      res.status(aiResponse.status).json(data);
     }
 
   } catch (error) {
-    console.error("[Server Error]", error);
-    return new Response(JSON.stringify({ error: "Proxy failed after all fallbacks", details: error.message }), {
-      status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
-    });
+    clearTimeout(timeoutId);
+
+    if (error.name === 'AbortError') {
+      return res.status(504).json({ 
+        error: 'Gateway Timeout', 
+        message: `The AI service failed to send a response within ${START_TIMEOUT / 1000} seconds.`
+      });
+    }
+    
+    console.error('Proxy Server Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 }
