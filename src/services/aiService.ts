@@ -1,209 +1,77 @@
-import { InfoFormData, AnalysisData, DealData, ApplicationPayload } from "../../types";
+import { AnalysisResult, ApplicationPayload, Buyer } from '../types';
 
-// [回退] 暂时注释掉 Firebase 依赖，确保演示流程绝对稳定
-// import { db, storage } from "../firebaseConfig";
-// import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-// import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+const mockBuyer = (id: number, country: string, countryCode: string): Buyer => ({
+  id,
+  name: `Buyer #${id}`,
+  country,
+  countryCode,
+  product: `Product ${id}`,
+  revenue: Math.floor(Math.random() * 1000000),
+  interest: Math.floor(Math.random() * 100),
+});
 
-const generateMessages = (formData: InfoFormData) => [
-  {
-    role: "system",
-    content: `You are an expert Global Sourcing Specialist. Your task is to analyze user-provided product information and generate a structured JSON report of potential buyers. You must strictly follow all instructions and output formats.`
+const aiService = {
+  getAnalysis: async (productName: string): Promise<AnalysisResult> => {
+    // In a real application, you would make an API call here
+    // and the AI would generate the analysis based on the product name.
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+
+    const mockBuyers: Buyer[] = [
+      mockBuyer(1, "United States", "US"),
+      mockBuyer(2, "Germany", "DE"),
+      mockBuyer(3, "Japan", "JP"),
+      mockBuyer(4, "Brazil", "BR"),
+      mockBuyer(5, "Australia", "AU"),
+      mockBuyer(6, "Canada", "CA"),
+      mockBuyer(7, "France", "FR"),
+      mockBuyer(8, "India", "IN"),
+    ];
+
+    return {
+      buyers: mockBuyers,
+      summary: `Based on your product, ${productName}, we have identified 8 potential buyers in 8 countries. The strongest interest is from North America and Europe.`,
+    };
   },
-  {
-    role: "user",
-    content: `Analyze the following product information and generate the potential buyers JSON report.
 
-- Product Name: "${formData.productName}"
-- Key Features: "${formData.productDetails}"
-- Target Market: "${formData.targetMarket}"
+  submitApplication: async (payload: ApplicationPayload): Promise<{ success: boolean }> => {
+    console.log("--- 正在向 HubSpot 提交最终申请 ---");
 
-TASK:
-1. Generate ONE "bestMatch" buyer that is a perfect fit. This buyer needs detailed persona data.
-   - "matchScore": A number between 95 and 99.
-   - "companyMasked": Real-sounding company name but partially masked (e.g., "Global T*** Solutions").
-   - "productScope": Specific products they buy related to the user's input.
-   - "factoryPreference": What kind of factory they like (e.g., "OEM Capable", " BSCI Audited").
-   - "qualifications": Array of 2-3 standard certs needed (e.g., "ISO9001", "CE").
-   - "joinDate": A date within last 2 years (YYYY-MM).
-   - "lastOrderSize": A realistic large amount masked (e.g., "$5**,000+").
-
-2. Generate a list of "top10" other buyers (standard format).
-
-OUTPUT FORMAT (CRITICAL): Respond with only the raw JSON object.
-{
-  "potentialBuyers": {
-    "total": number, // Estimate total market size (e.g. 500-2000)
-    "bestMatch": {
-      "id": 999,
-      "name": "Purchase Manager",
-      "location": "City, Country",
-      "country": "${formData.targetMarket}",
-      "industry": "string",
-      "buyerType": "string",
-      "matchScore": number,
-      "companyMasked": "string",
-      "productScope": "string",
-      "factoryPreference": "string",
-      "qualifications": ["string"],
-      "joinDate": "string",
-      "lastOrderSize": "string"
-    },
-    "top10": [
-      {
-        "id": number,
-        "name": "string (Descriptive Alias)",
-        "location": "City, Country",
-        "country": "${formData.targetMarket}",
-        "industry": "string",
-        "buyerType": "string"
-      }
-    ]
-  }
-}`
-  }
-];
-
-const callAAsStream = async (
-  messages: any[],
-  onChunk: (chunk: string) => void,
-  onComplete: () => void,
-  onError: (error: Error) => void
-) => {
-  try {
-    const response = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: "[vertex]gemini-3-pro-preview",
-        messages: messages,
-        stream: true
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Request Failed`); 
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error("No reader");
-
-    const decoder = new TextDecoder();
-    let leftover = '';
-    let hasStreamed = false;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = (leftover + chunk).split('\n');
-      leftover = lines.pop() || '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const jsonStr = line.substring(6);
-          if (jsonStr === '[DONE]') {
-            onComplete();
-            return;
-          }
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content || '';
-            if (content) {
-              hasStreamed = true;
-              onChunk(content);
-            }
-          } catch (e) { }
-        }
-      }
-    }
-    onComplete();
-  } catch (error: any) {
-    onError(error);
-  }
-};
-
-// [新增] 本地 Mock 数据生成器，确保永远有数据展示
-const getMockAnalysisData = (formData: InfoFormData): AnalysisData => {
-  return {
-    potentialBuyers: {
-      total: 1240,
-      bestMatch: {
-        id: 999,
-        name: "Senior Purchasing Lead",
-        location: "New York, USA",
-        country: formData.targetMarket,
-        industry: "Retail & Distribution",
-        buyerType: "Chain Retailer",
-        matchScore: 98,
-        companyMasked: "Home D*** Supply Chain",
-        productScope: `${formData.productName}, Smart Home Devices`,
-        factoryPreference: "OEM/ODM Experience > 5 Years",
-        qualifications: ["ISO9001", "BSCI", "FCC"],
-        joinDate: "2023-11",
-        lastOrderSize: "$5**,000+"
-      },
-      top10: [
-        { id: 1, name: "Large Scale Distributor", location: "California, USA", country: formData.targetMarket, industry: "Wholesale", buyerType: "Wholesaler" },
-        { id: 2, name: "Regional Chain Store", location: "Texas, USA", country: formData.targetMarket, industry: "Retail", buyerType: "Retailer" },
-        { id: 3, name: "E-commerce Aggregator", location: "London, UK", country: "Europe", industry: "E-commerce", buyerType: "Online Brand" },
-        { id: 4, name: "Construction Material Importer", location: "Toronto, Canada", country: "North America", industry: "Construction", buyerType: "Importer" },
-      ]
-    }
-  };
-};
-
-export const aiService = {
-  getAnalysis: async (
-    formData: InfoFormData,
-    onChunk: (chunk: string) => void,
-    onComplete: () => void,
-    onError: (error: Error) => void
-  ) => {
-    try {
-      console.log(`[AI Analysis] Starting for: ${formData.productName}`);
-      const messages = generateMessages(formData);
+    // 1. 数据映射 (把前端变量名 转换成 后端API需要的名字)
+    const apiBody = {
+      companyName: payload.companyName,
+      keywords: payload.productName,       // 前端叫 productName -> 后端叫 keywords
+      contactPerson: payload.contactPerson,
+      phone: payload.contactPhone,         // 前端叫 contactPhone -> 后端叫 phone
+      advantages: payload.productDetails,  // 前端叫 productDetails -> 后端叫 advantages
       
-      // 尝试调用 AI
-      await callAAsStream(messages, onChunk, onComplete, (err) => {
-        // [关键逻辑] 如果 AI 失败，不报错，而是静默切换到 Mock 数据
-        console.warn("AI Stream failed, switching to fallback data:", err);
-        const fallback = getMockAnalysisData(formData);
-        // 模拟流式传输的效果
-        onChunk(JSON.stringify(fallback));
-        onComplete();
+      // 你还可以把第四步收集的资质数据也加进去 (如果后端支持)
+      establishedYear: payload.establishedYear, 
+      annualRevenue: payload.annualRevenue
+    };
+
+    // 2. 发送真实请求
+    try {
+      const response = await fetch('/api/submit-application', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiBody),
       });
 
-    } catch (error: any) {
-      // 这一层捕获同步错误
-      console.error("AI Service Error:", error);
-      const fallback = getMockAnalysisData(formData);
-      onChunk(JSON.stringify(fallback));
-      onComplete();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '提交失败');
+      }
+
+      const data = await response.json();
+      return { success: true };
+
+    } catch (error) {
+      console.error("HubSpot C:", error);
+      throw error;
     }
-  },
-
-  getStrategy: async (onComplete: () => void) => {
-    setTimeout(onComplete, 1200);
-  },
-
-  // [回退] 恢复为纯模拟提交，不再连接 Firebase
-  // 这样可以确保 100% 成功跳转到成功页
-  submitApplication: async (payload: ApplicationPayload): Promise<{ success: boolean }> => {
-    console.log("--- [模拟模式] 正在提交工厂资质申请 ---");
-    console.log("提交数据快照:", {
-        company: payload.companyName,
-        photos: payload.factoryPhotos.length,
-        license: payload.businessLicense ? 'Uploaded' : 'None'
-    });
-
-    return new Promise((resolve) => {
-      // 模拟网络延迟 2 秒，给 Loading 动画展示的机会
-      setTimeout(() => {
-          console.log("--- [模拟模式] 申请提交成功 ---");
-          resolve({ success: true });
-      }, 2000);
-    });
   }
 };
+
+export default aiService;

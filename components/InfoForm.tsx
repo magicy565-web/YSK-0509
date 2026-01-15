@@ -1,252 +1,104 @@
-import React, { useState, useEffect } from 'react';
-import { InfoFormData } from '../types';
-import { ArrowRight, Search, Globe, Target, User, Phone, Building } from 'lucide-react';
+import React, { useState } from 'react';
+import { InfoFormData, InfoFormProps } from '../src/types';
+import { motion } from 'framer-motion';
+import { ArrowRight, Info } from 'lucide-react';
 
-// --- 组件：打字机特效 (修复版) ---
-const Typewriter: React.FC = () => {
-  const phrases = [
-    "🔍 刚刚 广东照明厂 成功匹配 32 个美国买家",
-    "🔍 刚刚 浙江五金厂 获取了 德国采购商 询盘",
-    "🔍 刚刚 江苏医疗器械厂 匹配到 巴西 分销商",
-    "🔍 刚刚 山东轮胎厂 对接上 中东 采购代表",
-  ];
-  const [text, setText] = useState('');
-  const [phraseIndex, setPhraseIndex] = useState(0);
+const inputStyle = "w-full bg-gray-800 border border-gray-700 rounded-md px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300";
+const labelStyle = "block text-sm font-medium text-gray-400 mb-2";
+const tooltipStyle = "absolute left-full ml-4 w-64 bg-gray-900 text-white text-sm rounded-lg p-3 border border-gray-700 shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300";
 
-  useEffect(() => {
-    let currentText = '';
-    let isDeleting = false;
-    let charIndex = 0;
-    let timeoutId: NodeJS.Timeout;
-
-    const type = () => {
-      const currentPhrase = phrases[phraseIndex];
-      if (isDeleting) {
-        currentText = currentPhrase.substring(0, charIndex--);
-      } else {
-        currentText = currentPhrase.substring(0, charIndex++);
-      }
-      setText(currentText);
-
-      let typeSpeed = isDeleting ? 30 : 80;
-
-      if (!isDeleting && charIndex === currentPhrase.length) {
-        isDeleting = true;
-        typeSpeed = 2500;
-      } else if (isDeleting && charIndex === 0) {
-        isDeleting = false;
-        setPhraseIndex((prevIndex) => (prevIndex + 1) % phrases.length);
-        typeSpeed = 500;
-      }
-
-      timeoutId = setTimeout(type, typeSpeed);
-    };
-
-    type();
-    return () => clearTimeout(timeoutId);
-  }, [phraseIndex]);
-
-  return (
-    // 添加 translate="no" 保护动态文本
-    <div className="inline-flex items-center bg-slate-100/80 border border-slate-200 rounded-full px-4 py-1.5 text-sm text-slate-600 shadow-sm backdrop-blur-sm" translate="no">
-      <span className="font-medium mr-1">实时动态:</span>
-      <span className="min-w-[200px] text-left">
-        {/* 使用 span 包裹纯文本，增加稳定性 */}
-        <span>{text}</span>
-        <span className="animate-pulse text-emerald-500">|</span>
-      </span>
+const FormInput = ({ id, label, type = 'text', value, onChange, placeholder, tooltip }) => (
+  <div className="relative group">
+    <label htmlFor={id} className={labelStyle}>{label}</label>
+    <div className="flex items-center">
+      <input
+        type={type}
+        id={id}
+        name={id}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={inputStyle}
+        required
+      />
+      <span className="ml-3 text-gray-500"><Info size={18} /></span>
     </div>
-  );
-};
-
-interface InfoFormProps {
-  onSubmit: (formData: InfoFormData) => void;
-}
+    <div className={tooltipStyle}>{tooltip}</div>
+  </div>
+);
 
 export const InfoForm: React.FC<InfoFormProps> = ({ onSubmit }) => {
   const [formData, setFormData] = useState<InfoFormData>({
     productName: '',
     productDetails: '',
-    targetMarket: 'North America', 
+    targetMarket: 'North America',
     companyName: '',
     contactPerson: '',
     contactPhone: ''
   });
-  const [isHovered, setIsHovered] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const response = await fetch('/api/submit-application', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      const data = await response.json();
-      if (data.success) {
-        console.log('HubSpot Deal Created:', data.crmId);
-        // You can now redirect to the landing page or show a success message
-        window.location.href = data.landingPageUrl;
-      } else {
-        console.error('Submission failed:', data.error);
-      }
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    }
+    onSubmit(formData);
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto">
-      <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-400/20 rounded-full blur-[80px] pointer-events-none"></div>
-      <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-blue-400/20 rounded-full blur-[80px] pointer-events-none"></div>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.5 }}
+      className="max-w-4xl mx-auto p-8 bg-gray-900 rounded-2xl shadow-2xl border border-gray-700/50"
+    >
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-white mb-2">开启您的全球商机</h1>
+          <p className="text-lg text-gray-400">只需1分钟，AI将为您分析全球潜在买家</p>
+        </div>
 
-      <div className="relative bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 md:p-12 overflow-hidden">
-        
-        <div className="text-center mb-10 space-y-4">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            输入产品，<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">一键匹配全球买家</span>
-          </h1>
-          <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            已有 <span className="font-bold text-slate-900 border-b-2 border-emerald-400/50">15,402</span> 家源头工厂通过平台成功出海，平均 3 天对接首个意向客户。
-          </p>
-          
-          <div className="pt-2">
-            <Typewriter />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6 p-6 bg-gray-800/50 rounded-lg border border-gray-700">
+            <h3 className="text-xl font-semibold text-white border-b border-gray-600 pb-3">核心产品信息</h3>
+            <FormInput id="productName" label="您的核心产品/服务" value={formData.productName} onChange={handleChange} placeholder="例如：太阳能电池板、工业机器人" tooltip="这是AI分析的起点。请使用行业标准术语，以便我们能精准匹配您的潜在买家。" />
+            <div>
+                <label htmlFor="productDetails" className={labelStyle}>产品核心优势与特点</label>
+                <textarea id="productDetails" name="productDetails" value={formData.productDetails} onChange={handleChange} placeholder="例如：转化率高、寿命长达25年、通过TÜV认证..." rows={4} className={inputStyle} required />
+            </div>
+            <div className="relative group">
+                <label htmlFor="targetMarket" className={labelStyle}>意向出口市场</label>
+                <select id="targetMarket" name="targetMarket" value={formData.targetMarket} onChange={handleChange} className={inputStyle}>
+                    <option>North America</option>
+                    <option>Europe</option>
+                    <option>Asia</option>
+                    <option>South America</option>
+                    <option>Africa</option>
+                    <option>Oceania</option>
+                    <option>Global</option>
+                </select>
+                <div className={tooltipStyle}>选择您最感兴趣的市场，AI将重点分析该区域的买家。选择“Global”则进行全球扫描。</div>
+            </div>
+          </div>
+
+          <div className="space-y-6 p-6 bg-gray-800/50 rounded-lg border border-gray-700">
+            <h3 className="text-xl font-semibold text-white border-b border-gray-600 pb-3">企业基本信息</h3>
+            <FormInput id="companyName" label="公司名称" value={formData.companyName} onChange={handleChange} placeholder="请输入您的公司全称" tooltip="用于生成合作方案和最终的CRM记录，请确保准确。"/>
+            <FormInput id="contactPerson" label="联系人" value={formData.contactPerson} onChange={handleChange} placeholder="您的姓名" tooltip="我们将通过此信息与您联系，讨论AI分析结果。" />
+            <FormInput id="contactPhone" label="联系电话" type="tel" value={formData.contactPhone} onChange={handleChange} placeholder="您的手机或座机号码" tooltip="紧急沟通或快速确认合作意向时使用。"/>
           </div>
         </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto relative z-10">
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="group relative">
-              <label htmlFor="companyName" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
-                公司名称 <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Building className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                </div>
-                <input
-                  type="text"
-                  id="companyName"
-                  name="companyName"
-                  value={formData.companyName}
-                  onChange={handleChange}
-                  className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
-                  placeholder="例如：深圳市XX科技有限公司"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="group relative">
-              <label htmlFor="productName" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
-                核心产品关键词 <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                </div>
-                <input
-                  type="text"
-                  id="productName"
-                  name="productName"
-                  value={formData.productName}
-                  onChange={handleChange}
-                  className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
-                  placeholder="例如：锂离子电池、数控机床、LED屏"
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-              <div className="group relative">
-                <label htmlFor="contactPerson" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
-                  联系人 <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                  </div>
-                  <input
-                    type="text"
-                    id="contactPerson"
-                    name="contactPerson"
-                    value={formData.contactPerson}
-                    onChange={handleChange}
-                    className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
-                    placeholder="例如：王经理"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="group relative">
-                <label htmlFor="contactPhone" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
-                  联系电话 <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                  </div>
-                  <input
-                    type="tel"
-                    id="contactPhone"
-                    name="contactPhone"
-                    value={formData.contactPhone}
-                    onChange={handleChange}
-                    className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
-                    placeholder="例如：13800138000"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-          <div className="group relative">
-            <label htmlFor="productDetails" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
-              核心优势 <span className="text-xs font-normal text-slate-400">(越详细匹配越准)</span>
-            </label>
-            <div className="relative">
-              <div className="absolute top-4 left-4 pointer-events-none">
-                <Target className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-              </div>
-              <textarea
-                id="productDetails"
-                name="productDetails"
-                value={formData.productDetails}
-                onChange={handleChange}
-                className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md resize-none h-[120px]"
-                placeholder="例如：拥有私模，通过UL/CE认证，支持OEM/ODM，日产能5万件..."
-                required
-              />
-            </div>
-          </div>
-
-          <div class="pt-4">
-            <button 
-              type="submit"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              className="group relative w-full bg-gradient-to-r from-slate-900 to-slate-800 hover:from-emerald-600 hover:to-teal-600 text-white font-bold py-5 px-8 rounded-xl shadow-xl hover:shadow-2xl hover:shadow-emerald-500/30 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden"
-            >
-              <div className="relative z-10 flex items-center justify-center text-lg tracking-wide">
-                立即启动全球资源匹配
-                <ArrowRight className={`ml-3 w-6 h-6 transition-transform duration-300 ${isHovered ? 'translate-x-2' : ''}`} />
-              </div>
+        <div className="pt-6 text-center">
+            <button type="submit" className="w-full max-w-md mx-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500/50 flex items-center justify-center space-x-2">
+                <span>开启全球扫描</span>
+                <ArrowRight size={22} />
             </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            <p className="text-xs text-gray-500 mt-4">点击提交，即表示您同意我们的服务条款和隐私政策</p>
+        </div>
+      </form>
+    </motion.div>
   );
 };
