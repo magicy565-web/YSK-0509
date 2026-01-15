@@ -9,7 +9,8 @@ dotenv.config();
 const app = express();
 const port = 3001;
 const START_TIMEOUT = 30000;
-const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN });
+// Correctly use HUBSPOT_API_KEY from .env file
+const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_API_KEY });
 
 // --- SECURITY FIX 1: Rate Limiting --- 
 const apiLimiter = rateLimit({
