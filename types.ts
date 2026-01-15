@@ -13,6 +13,9 @@ export interface InfoFormData {
   productName: string;
   productDetails: string;
   targetMarket: string;
+  companyName: string;
+  contactPerson: string;
+  contactPhone: string;
 }
 
 export interface PotentialBuyer {

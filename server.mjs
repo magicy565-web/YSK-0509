@@ -2,12 +2,14 @@ import express from 'express';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import { Client } from '@hubspot/api-client';
 
 dotenv.config();
 
 const app = express();
 const port = 3001;
 const START_TIMEOUT = 30000;
+const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN });
 
 // --- SECURITY FIX 1: Rate Limiting --- 
 const apiLimiter = rateLimit({
@@ -75,6 +77,36 @@ app.post('/api/proxy', apiLimiter, async (req, res) => {
     
     console.error('Proxy Server Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/submit-application', async (req, res) => {
+  const { companyName, contactPerson, contactPhone } = req.body;
+
+  try {
+    // 1. 在 HubSpot 创建 Deal (代表申请)
+    const dealResponse = await hubspotClient.crm.deals.basicApi.create({
+      properties: {
+        dealname: `${companyName} - 入驻申请`,
+        pipeline: 'default', // 或者是您刚才新建管道的 ID
+        dealstage: 'appointmentscheduled', // 对应 "New Application" 阶段 ID
+        factory_name: companyName // 您可能需要在 HubSpot Deal 属性里建一个自定义字段存这个，或者直接存标题
+      }
+    });
+
+    // 2. 生成 "伪" 动态链接 (指向刚才发布的 HubSpot 页面)
+    // 注意：这里我们在 URL 里埋入了工厂名
+    const landingPageUrl = `https://244873556.hs-sites-na2.com/factory-profile-template?name=${encodeURIComponent(companyName)}&id=${dealResponse.id}`;
+
+    res.json({
+      success: true,
+      crmId: dealResponse.id,
+      landingPageUrl: landingPageUrl
+    });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
   }
 });
 

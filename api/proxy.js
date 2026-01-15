@@ -1,3 +1,4 @@
+
 export const config = {
   runtime: 'edge',
 };
@@ -24,9 +25,11 @@ export default async function handler(req) {
     });
   }
 
-  // 3. Get API Key and Base URL from environment variables
+  // 3. Get API Key and define Base URLs
   const apiKey = process.env.NOVAI_API_KEY;
-  const baseUrl = process.env.NOVAI_BASE_URL || "https://once-cf.novai.su/v1/chat/completions";
+  const primaryBaseUrl = process.env.NOVAI_BASE_URL || "https://once-cf.novai.su/v1/chat/completions";
+  // [NEW] Add a fallback URL. This is a public test endpoint.
+  const fallbackBaseUrl = "https://openrouter.ai/api/v1/chat/completions"; 
 
   if (!apiKey) {
     console.error('[Proxy Error] NOVAI_API_KEY is not set.');
@@ -36,8 +39,25 @@ export default async function handler(req) {
     });
   }
 
+  const tryRequest = async (url, headers, body) => {
+    console.log(`[Proxy] Attempting to forward request to ${url}`);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        console.warn(`[Proxy] Request to ${url} failed with status ${response.status}:`, errorBody);
+        throw new Error(`Upstream request failed with status ${response.status}`);
+    }
+    
+    console.log(`[Proxy] Request to ${url} was successful.`);
+    return response;
+  };
+
   try {
-    // 4. Parse request body and validate
     const { model, messages, stream } = await req.json();
 
     if (!model || !messages) {
@@ -47,21 +67,30 @@ export default async function handler(req) {
       });
     }
 
-    console.log(`[Proxy] Forwarding request to ${baseUrl}. Model: ${model}, Stream: ${stream}`);
-
-    // 5. Forward the request to the NovAI backend
-    const backendResponse = await fetch(baseUrl, {
-      method: 'POST',
-      headers: {
+    const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ model, messages, stream, temperature: 0.7 }),
-    });
+        // [NEW] OpenRouter requires this header
+        'HTTP-Referer': 'https://your-app-name.com', 
+        'X-Title': 'Your App Name',
+    };
+    const body = { model, messages, stream, temperature: 0.7 };
 
+    let backendResponse;
+    try {
+        // Try primary URL first
+        backendResponse = await tryRequest(primaryBaseUrl, headers, body);
+    } catch (error) {
+        console.warn('[Proxy] Primary URL failed. Trying fallback...');
+        // If primary fails, try the fallback
+        // Note: The model might need to be adjusted for the fallback service.
+        // For OpenRouter, you can use models like "gryphe/mythomax-l2-13b".
+        const fallbackBody = { ...body, model: 'gryphe/mythomax-l2-13b' }; 
+        backendResponse = await tryRequest(fallbackBaseUrl, headers, fallbackBody);
+    }
+    
     // 6. Handle streaming or non-streaming responses
     if (stream && backendResponse.body) {
-        // If streaming, pipe the response body directly to our response
         return new Response(backendResponse.body, {
             status: backendResponse.status,
             headers: {
@@ -72,7 +101,6 @@ export default async function handler(req) {
             },
         });
     } else {
-        // If not streaming, parse the JSON and return it
         const data = await backendResponse.json();
         return new Response(JSON.stringify(data), {
             status: backendResponse.status,
@@ -85,7 +113,7 @@ export default async function handler(req) {
 
   } catch (error) {
     console.error("[Server Error]", error);
-    return new Response(JSON.stringify({ error: "Proxy failed", details: error.message }), {
+    return new Response(JSON.stringify({ error: "Proxy failed after all fallbacks", details: error.message }), {
       status: 500,
       headers: {
         'Access-Control-Allow-Origin': '*',

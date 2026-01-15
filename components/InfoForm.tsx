@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { InfoFormData } from '../types';
-import { ArrowRight, Search, Globe, Target, ShieldCheck, Zap, Building, Sparkles, TrendingUp } from 'lucide-react';
+import { ArrowRight, Search, Globe, Target, User, Phone, Building } from 'lucide-react';
 
 // --- 组件：打字机特效 (修复版) ---
 const Typewriter: React.FC = () => {
@@ -49,7 +49,6 @@ const Typewriter: React.FC = () => {
   return (
     // 添加 translate="no" 保护动态文本
     <div className="inline-flex items-center bg-slate-100/80 border border-slate-200 rounded-full px-4 py-1.5 text-sm text-slate-600 shadow-sm backdrop-blur-sm" translate="no">
-      <TrendingUp className="w-4 h-4 mr-2 text-emerald-500" />
       <span className="font-medium mr-1">实时动态:</span>
       <span className="min-w-[200px] text-left">
         {/* 使用 span 包裹纯文本，增加稳定性 */}
@@ -69,6 +68,9 @@ export const InfoForm: React.FC<InfoFormProps> = ({ onSubmit }) => {
     productName: '',
     productDetails: '',
     targetMarket: 'North America', 
+    companyName: '',
+    contactPerson: '',
+    contactPhone: ''
   });
   const [isHovered, setIsHovered] = useState(false);
 
@@ -77,9 +79,27 @@ export const InfoForm: React.FC<InfoFormProps> = ({ onSubmit }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    try {
+      const response = await fetch('/api/submit-application', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (data.success) {
+        console.log('HubSpot Deal Created:', data.crmId);
+        // You can now redirect to the landing page or show a success message
+        window.location.href = data.landingPageUrl;
+      } else {
+        console.error('Submission failed:', data.error);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
   };
 
   return (
@@ -90,10 +110,6 @@ export const InfoForm: React.FC<InfoFormProps> = ({ onSubmit }) => {
       <div className="relative bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 md:p-12 overflow-hidden">
         
         <div className="text-center mb-10 space-y-4">
-          <div className="inline-flex items-center justify-center space-x-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 border border-emerald-100">
-            <Sparkles className="w-3 h-3" />
-            <span>AI 驱动 · 海关数据实时同步</span>
-          </div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
             输入产品，<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">一键匹配全球买家</span>
           </h1>
@@ -107,79 +123,116 @@ export const InfoForm: React.FC<InfoFormProps> = ({ onSubmit }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto relative z-10">
-          
-          <div className="group relative">
-            <label htmlFor="productName" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
-              核心产品关键词 <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-              </div>
-              <input
-                type="text"
-                id="productName"
-                name="productName"
-                value={formData.productName}
-                onChange={handleChange}
-                className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
-                placeholder="例如：锂离子电池、数控机床、LED屏"
-                required
-              />
-            </div>
-          </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="group relative">
-              <label htmlFor="productDetails" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
-                核心优势 <span className="text-xs font-normal text-slate-400">(越详细匹配越准)</span>
+              <label htmlFor="companyName" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
+                公司名称 <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className="absolute top-4 left-4 pointer-events-none">
-                  <Target className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Building className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
                 </div>
-                <textarea
-                  id="productDetails"
-                  name="productDetails"
-                  value={formData.productDetails}
+                <input
+                  type="text"
+                  id="companyName"
+                  name="companyName"
+                  value={formData.companyName}
                   onChange={handleChange}
-                  className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md resize-none h-[120px]"
-                  placeholder="例如：拥有私模，通过UL/CE认证，支持OEM/ODM，日产能5万件..."
+                  className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
+                  placeholder="例如：深圳市XX科技有限公司"
                   required
                 />
               </div>
             </div>
 
-            <div className="flex flex-col">
-               <label htmlFor="targetMarket" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
-                目标市场 <span className="text-xs font-normal text-slate-400">(可选)</span>
+            <div className="group relative">
+              <label htmlFor="productName" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
+                核心产品关键词 <span className="text-red-500">*</span>
               </label>
-              <div className="relative h-full">
-                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none top-0">
-                    <Globe className="h-5 w-5 text-slate-400" />
-                 </div>
-                 <select
-                    id="targetMarket"
-                    name="targetMarket"
-                    value={formData.targetMarket}
-                    onChange={handleChange}
-                    className="block w-full h-[120px] pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm cursor-pointer appearance-none"
-                  >
-                    <option>北美 (North America)</option>
-                    <option>欧洲 (Europe)</option>
-                    <option>东南亚 (Southeast Asia)</option>
-                    <option>中东 (Middle East)</option>
-                    <option>南美 (South America)</option>
-                    <option>全球 (Global)</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                </div>
+                <input
+                  type="text"
+                  id="productName"
+                  name="productName"
+                  value={formData.productName}
+                  onChange={handleChange}
+                  className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
+                  placeholder="例如：锂离子电池、数控机床、LED屏"
+                  required
+                />
               </div>
             </div>
           </div>
 
-          <div className="pt-4">
+          <div className="grid md:grid-cols-2 gap-6">
+              <div className="group relative">
+                <label htmlFor="contactPerson" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
+                  联系人 <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                  </div>
+                  <input
+                    type="text"
+                    id="contactPerson"
+                    name="contactPerson"
+                    value={formData.contactPerson}
+                    onChange={handleChange}
+                    className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
+                    placeholder="例如：王经理"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="group relative">
+                <label htmlFor="contactPhone" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
+                  联系电话 <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                  </div>
+                  <input
+                    type="tel"
+                    id="contactPhone"
+                    name="contactPhone"
+                    value={formData.contactPhone}
+                    onChange={handleChange}
+                    className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
+                    placeholder="例如：13800138000"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+          <div className="group relative">
+            <label htmlFor="productDetails" className="block text-sm font-semibold text-slate-700 mb-2 pl-1">
+              核心优势 <span className="text-xs font-normal text-slate-400">(越详细匹配越准)</span>
+            </label>
+            <div className="relative">
+              <div className="absolute top-4 left-4 pointer-events-none">
+                <Target className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+              </div>
+              <textarea
+                id="productDetails"
+                name="productDetails"
+                value={formData.productDetails}
+                onChange={handleChange}
+                className="block w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all shadow-sm group-hover:shadow-md resize-none h-[120px]"
+                placeholder="例如：拥有私模，通过UL/CE认证，支持OEM/ODM，日产能5万件..."
+                required
+              />
+            </div>
+          </div>
+
+          <div class="pt-4">
             <button 
               type="submit"
               onMouseEnter={() => setIsHovered(true)}
@@ -190,32 +243,9 @@ export const InfoForm: React.FC<InfoFormProps> = ({ onSubmit }) => {
                 立即启动全球资源匹配
                 <ArrowRight className={`ml-3 w-6 h-6 transition-transform duration-300 ${isHovered ? 'translate-x-2' : ''}`} />
               </div>
-              <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent transform skew-x-12 transition-all duration-1000 group-hover:left-[100%] onlookers"></div>
             </button>
           </div>
         </form>
-
-        <div className="mt-10 pt-6 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div className="flex items-center justify-center text-slate-500 text-sm font-medium">
-              <div className="bg-emerald-100 p-1.5 rounded-full mr-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              </div>
-              企业数据银行级加密
-            </div>
-            <div className="flex items-center justify-center text-slate-500 text-sm font-medium">
-              <div className="bg-blue-100 p-1.5 rounded-full mr-2">
-                <Zap className="w-4 h-4 text-blue-600" />
-              </div>
-              AI 实时直连无需等待
-            </div>
-            <div className="flex items-center justify-center text-slate-500 text-sm font-medium">
-              <div className="bg-purple-100 p-1.5 rounded-full mr-2">
-                <Building className="w-4 h-4 text-purple-600" />
-              </div>
-              仅限源头工厂加入
-            </div>
-        </div>
-
       </div>
     </div>
   );
