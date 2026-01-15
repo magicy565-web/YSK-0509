@@ -1,11 +1,6 @@
 
 // api/submit-application.js
 import { Client } from '@hubspot/api-client';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_API_KEY });
 
 export default async function handler(req, res) {
   // 1. Handle CORS
@@ -25,6 +20,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
+      const hubspotClient = new Client({
+        accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+      });
       const { companyName, contactPerson, contactPhone } = req.body;
 
       const dealResponse = await hubspotClient.crm.deals.basicApi.create({
