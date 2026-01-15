@@ -1,28 +1,18 @@
 
 import { AnalysisData, ApplicationPayload } from '../types';
 
-// Helper function to extract a valid year number from a string.
 const getYearNumber = (yearString: string): number => {
     if (!yearString) return 0;
-    // Handles formats like "> 5 years"
     if (yearString.includes('>')) {
         return parseInt(yearString.replace(/[^0-9]/g, ''), 10);
     }
-    // Extracts leading numbers from formats like "5-10 years"
     const yearMatch = yearString.match(/^[0-9]+/);
     return yearMatch ? parseInt(yearMatch[0], 10) : 0;
 };
 
-// --- AI Service Definition ---
 const aiService = {
-  /**
-   * Fetches a market analysis from the AI service based on a product name.
-   * This function now makes a real API call to the backend proxy.
-   */
   getAnalysis: async (productName: string): Promise<AnalysisData> => {
     console.log(`[aiService] Fetching analysis for: ${productName}`);
-
-    // System prompt that instructs the AI on how to behave and what to generate.
     const systemPrompt = `
       You are a world-class market analyst AI for a global trade company.
       Your goal is to identify high-quality potential buyers for a given product.
@@ -48,28 +38,24 @@ const aiService = {
               "location": "<City>",
               "country": "<Country>"
             },
-            // ... (Generate 9 more similar objects)
           ]
         }
       }
       Do not include any text, notes, or explanations outside of the JSON structure.
       The data should be realistic, diverse, and tailored to the product.
     `;
-
-    // The user's query to the AI.
     const userPrompt = `Product: "${productName}"`;
-
     try {
       const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gpt-4-turbo', // Using a powerful model for quality results
+          model: 'gpt-4-turbo',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
-          stream: false, // We expect a single JSON object back, not a stream
+          stream: false,
         }),
       });
 
@@ -81,10 +67,8 @@ const aiService = {
 
       const data = await response.json();
       
-      // The AI might return the JSON as a string within the 'content' field.
       if (data.choices && data.choices[0].message.content) {
         const jsonString = data.choices[0].message.content;
-        // Clean up potential markdown code block fences.
         const cleanedJsonString = jsonString.replace(/^```json\n|\n```$/g, '');
         const analysisData: AnalysisData = JSON.parse(cleanedJsonString);
         console.log('[aiService] Successfully parsed analysis data.');
@@ -95,31 +79,51 @@ const aiService = {
 
     } catch (error) {
       console.error('[aiService] Failed to fetch or parse AI analysis:', error);
-      // Re-throwing the error to be caught by the calling component (App.tsx)
       throw error;
     }
   },
 
-  /**
-   * Submits the final application payload to the backend.
-   */
   submitApplication: async (payload: ApplicationPayload): Promise<{ success: boolean }> => {
-    console.log("[aiService] Submitting application to backend...");
+    console.log("[aiService] Submitting application with files...");
 
-    const apiBody = {
-        ...payload,
-        establishedYear: getYearNumber(payload.establishedYear),
-    };
+    const formData = new FormData();
+
+    // Append all non-file fields from the payload
+    Object.entries(payload).forEach(([key, value]) => {
+      if (key === 'businessLicense' || key === 'factoryPhotos' || key === 'productCertificates') {
+        // Skip file fields for now
+      } else if (key === 'mainCertificates' && Array.isArray(value)) {
+        // Flatten array for FormData
+        value.forEach(cert => formData.append('mainCertificates[]', cert));
+      } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        formData.append(key, String(value));
+      }
+    });
+    
+    // Append file fields
+    if (payload.businessLicense) {
+      formData.append('businessLicense', payload.businessLicense);
+    }
+    if (payload.factoryPhotos && payload.factoryPhotos.length > 0) {
+      payload.factoryPhotos.forEach(file => formData.append('factoryPhotos', file));
+    }
+    if (payload.productCertificates && payload.productCertificates.length > 0) {
+      payload.productCertificates.forEach(file => formData.append('productCertificates', file));
+    }
+
+    // Special handling for year conversion
+    formData.set('establishedYear', String(getYearNumber(payload.establishedYear)));
 
     try {
       const response = await fetch('/api/submit-application', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiBody),
+        // Let the browser set the Content-Type header for FormData
+        body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("[Service] Submission Error Data:", errorData);
         throw new Error(errorData.error || 'Submission failed due to a server error.');
       }
 
