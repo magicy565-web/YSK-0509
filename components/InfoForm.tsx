@@ -7,7 +7,17 @@ const inputStyle = "w-full bg-gray-800 border border-gray-700 rounded-md px-4 py
 const labelStyle = "block text-sm font-medium text-gray-400 mb-2";
 const tooltipStyle = "absolute left-full ml-4 w-64 bg-gray-900 text-white text-sm rounded-lg p-3 border border-gray-700 shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300";
 
-const FormInput = ({ id, label, type = 'text', value, onChange, placeholder, tooltip }) => (
+interface FormInputProps {
+  id: string;
+  label: string;
+  type?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder: string;
+  tooltip: string;
+}
+
+const FormInput: React.FC<FormInputProps> = ({ id, label, type = 'text', value, onChange, placeholder, tooltip }) => (
   <div className="relative group">
     <label htmlFor={id} className={labelStyle}>{label}</label>
     <div className="flex items-center">
