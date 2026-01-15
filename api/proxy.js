@@ -51,29 +51,38 @@ export default async function handler(req, res) {
 
     clearTimeout(timeoutId);
 
-    // Correctly handle the JSON response (non-streaming)
-    const aiData = await aiResponse.json();
+    // New more robust error handling: read body as text first.
+    const responseBodyText = await aiResponse.text();
 
-    // If the AI service returned an error, forward it
     if (!aiResponse.ok) {
-      console.error("Error from NovAI API:", aiData);
-      return res.status(aiResponse.status).json(aiData);
+      console.error("Error from NovAI API. Status:", aiResponse.status);
+      console.error("Response Body:", responseBodyText);
+      // Forward the raw error from the AI service to the client for diagnosis
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(aiResponse.status).json({ error: "Failed to fetch from AI service.", details: responseBodyText });
     }
-    
-    // Send the successful JSON response back to the client
-    res.status(200).json(aiData);
+
+    // Now that we know the request was "ok", we can safely parse and send.
+    try {
+      const aiData = JSON.parse(responseBodyText);
+      return res.status(200).json(aiData);
+    } catch (e) {
+      console.error("Could not parse successful AI response as JSON.");
+      console.error("Response Body:", responseBodyText);
+      return res.status(502).json({ error: 'Bad Gateway: Invalid JSON response from AI service.' });
+    }
 
   } catch (error) {
     clearTimeout(timeoutId);
 
     if (error.name === 'AbortError') {
-      return res.status(504).json({ 
-        error: 'Gateway Timeout', 
+      return res.status(504).json({
+        error: 'Gateway Timeout',
         message: `The AI service failed to respond within ${START_TIMEOUT / 1000} seconds.`
       });
     }
-    
+
     console.error('Proxy Server Error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
