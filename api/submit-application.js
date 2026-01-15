@@ -3,6 +3,11 @@
 import { Client } from '@hubspot/api-client';
 
 export default async function handler(req, res) {
+  // --- 调试代码开始 ---
+  console.log("正在尝试提交...");
+  console.log("Token状态:", process.env.HUBSPOT_ACCESS_TOKEN ? "✅ 已读取" : "❌ 未找到 (是 undefined)");
+  // --- 调试代码结束 ---
+
   // 1. Handle CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*'); // Or your frontend domain
