@@ -1,3 +1,4 @@
+
 import { AnalysisResult, ApplicationPayload, Buyer } from '../types';
 
 const mockBuyer = (id: number, country: string, countryCode: string): Buyer => ({
@@ -10,11 +11,18 @@ const mockBuyer = (id: number, country: string, countryCode: string): Buyer => (
   interest: Math.floor(Math.random() * 100),
 });
 
+const getYearNumber = (yearString: string): number => {
+    if (!yearString) return 0;
+    if (yearString.includes('>')) {
+        return parseInt(yearString.replace(/[^0-9]/g, ''), 10);
+    }
+    const yearMatch = yearString.match(/^[0-9]+/);
+    return yearMatch ? parseInt(yearMatch[0], 10) : 0;
+};
+
 const aiService = {
   getAnalysis: async (productName: string): Promise<AnalysisResult> => {
-    // In a real application, you would make an API call here
-    // and the AI would generate the analysis based on the product name.
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const mockBuyers: Buyer[] = [
       mockBuyer(1, "United States", "US"),
@@ -36,20 +44,16 @@ const aiService = {
   submitApplication: async (payload: ApplicationPayload): Promise<{ success: boolean }> => {
     console.log("--- 正在向 HubSpot 提交最终申请 ---");
 
-    // 1. 数据映射 (把前端变量名 转换成 后端API需要的名字)
     const apiBody = {
       companyName: payload.companyName,
-      keywords: payload.productName,       // 前端叫 productName -> 后端叫 keywords
+      keywords: payload.productName,
       contactPerson: payload.contactPerson,
-      phone: payload.contactPhone,         // 前端叫 contactPhone -> 后端叫 phone
-      advantages: payload.productDetails,  // 前端叫 productDetails -> 后端叫 advantages
-      
-      // 你还可以把第四步收集的资质数据也加进去 (如果后端支持)
-      establishedYear: payload.establishedYear, 
-      annualRevenue: payload.annualRevenue
+      phone: payload.contactPhone,
+      advantages: payload.productDetails,
+      establishedYear: getYearNumber(payload.establishedYear),
+      annualRevenue: payload.annualRevenue,
     };
 
-    // 2. 发送真实请求
     try {
       const response = await fetch('/api/submit-application', {
         method: 'POST',
@@ -64,11 +68,11 @@ const aiService = {
         throw new Error(errorData.error || '提交失败');
       }
 
-      const data = await response.json();
+      await response.json();
       return { success: true };
 
     } catch (error) {
-      console.error("HubSpot C:", error);
+      console.error("HubSpot Submit Error:", error);
       throw error;
     }
   }

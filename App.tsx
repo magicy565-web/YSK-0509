@@ -7,8 +7,8 @@ import { StateStrategy } from './components/StateStrategy';
 import { StateDeal } from './components/StateDeal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { SuccessState } from './components/SuccessState';
-import { aiService } from './src/services/aiService';
-import { AppState, AnalysisData, DealData, InfoFormData, ApplicationPayload } from './types'; // [FIX 8/8] Import ApplicationPayload
+import aiService from './src/services/aiService';
+import { AppState, AnalysisData, DealData, InfoFormData, ApplicationPayload } from './types';
 
 const ErrorDisplay = ({ message, onClose }: { message: string, onClose: () => void }) => (
   <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
@@ -28,7 +28,6 @@ function App() {
   
   const [infoFormData, setInfoFormData] = useState<InfoFormData | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
-  const [streamedAnalysis, setStreamedAnalysis] = useState("");
 
   const [loadingStep, setLoadingStep] = useState(1); 
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -44,7 +43,6 @@ function App() {
     setIsLoading(true);
     setInfoFormData(formData);
     setError(null);
-    setStreamedAnalysis("");
     clearAllTimers();
     
     setLoadingStep(1);
@@ -81,18 +79,14 @@ function App() {
     loadingTimers.current.push(timer1, timer2);
 
     const minWaitTime = new Promise(resolve => setTimeout(resolve, 45000));
-
-    const aiRequest = new Promise<void>((resolve, reject) => {
-      aiService.getAnalysis(formData, 
-        (chunk) => setStreamedAnalysis(prev => prev + chunk), 
-        () => resolve(),
-        (err) => reject(err)
-      );
-    });
-
+    
     try {
-      await Promise.all([aiRequest, minWaitTime]);
+      const analysisPromise = aiService.getAnalysis(formData.productName);
+      const [analysisResult] = await Promise.all([analysisPromise, minWaitTime]);
+      
+      setAnalysisData(analysisResult);
       setLoadingProgress(100);
+
       const successTimer = setTimeout(() => {
         clearAllTimers();
         setIsLoading(false);
@@ -107,22 +101,6 @@ function App() {
     }
   };
   
-  useEffect(() => {
-    if (streamedAnalysis) {
-      try {
-        const parsed = JSON.parse(streamedAnalysis);
-        
-        // [修复核心]：只有当 parsed 对象包含 potentialBuyers 且不为空时，才更新状态
-        // 这防止了空对象 {} 或不完整的数据导致组件崩溃
-        if (parsed && typeof parsed === 'object' && parsed.potentialBuyers) {
-             setAnalysisData(parsed);
-        }
-      } catch (e) { 
-          // 忽略 JSON 解析错误，这在流式传输中是正常的（因为 JSON 可能还没传输完）
-      }
-    }
-  }, [streamedAnalysis]);
-
   const handleAnalysisApproved = () => {
     setCurrentState(AppState.STRATEGY);
   };
@@ -131,13 +109,12 @@ function App() {
     setCurrentState(AppState.DEAL);
   };
 
-  const handleDealApproval = async (dealData: DealData) => { // [FIX 8/8] The function name was handleApproveDeal, changed for consistency
+  const handleDealApproval = async (dealData: DealData) => {
       if (!infoFormData) {
         setError("关键产品信息丢失，请刷新重试。");
         return;
       }
       
-      // [FIX 8/8] Combine initial form data and deal data into the complete payload
       const applicationPayload: ApplicationPayload = {
         ...infoFormData,
         ...dealData,
@@ -148,7 +125,7 @@ function App() {
       setError(null);
 
       try {
-        await aiService.submitApplication(applicationPayload); // Pass the unified payload
+        await aiService.submitApplication(applicationPayload);
         setCurrentState(AppState.SUCCESS);
       } catch (err: any) { 
         console.error(err);
@@ -168,25 +145,23 @@ function App() {
         {currentState === AppState.FORM && <InfoForm onSubmit={handleFormSubmit} />}
         
         {currentState === AppState.ANALYSIS && (
-  analysisData ? (
-    <StateAnalysis 
-        data={analysisData} 
-        onApprove={handleAnalysisApproved} 
-        // [新增] 传递目标市场信息，默认为 Global
-        region={infoFormData?.targetMarket || 'Global'} 
-    />
-  ) : (
-    // ... 原有的 Error/Loading 兜底代码 ...
-    <div className="...">...</div>
-  )
-)}
+          analysisData ? (
+            <StateAnalysis 
+                data={analysisData} 
+                onApprove={handleAnalysisApproved} 
+                region={infoFormData?.targetMarket || 'Global'} 
+            />
+          ) : (
+            <div className="text-center p-8">正在加载分析数据...</div>
+          )
+        )}
         
         {currentState === AppState.STRATEGY && <StateStrategy onApprove={handleStrategyApproved} />}
         
         {currentState === AppState.DEAL && infoFormData && (
           <StateDeal 
             initialFormData={infoFormData} 
-            onApprove={handleDealApproval} // [FIX 8/8] Use the correct handler function
+            onApprove={handleDealApproval}
           />
         )}
         
