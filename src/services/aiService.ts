@@ -88,19 +88,15 @@ const aiService = {
 
     const formData = new FormData();
 
-    // Append all non-file fields from the payload
     Object.entries(payload).forEach(([key, value]) => {
       if (key === 'businessLicense' || key === 'factoryPhotos' || key === 'productCertificates') {
-        // Skip file fields for now
       } else if (key === 'mainCertificates' && Array.isArray(value)) {
-        // Flatten array for FormData
         value.forEach(cert => formData.append('mainCertificates[]', cert));
       } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
         formData.append(key, String(value));
       }
     });
     
-    // Append file fields
     if (payload.businessLicense) {
       formData.append('businessLicense', payload.businessLicense);
     }
@@ -111,7 +107,6 @@ const aiService = {
       payload.productCertificates.forEach(file => formData.append('productCertificates', file));
     }
 
-    // Special handling for year conversion
     formData.set('establishedYear', String(getYearNumber(payload.establishedYear)));
 
     try {
@@ -121,14 +116,14 @@ const aiService = {
       });
 
       if (!response.ok) {
-          const errorData = await response.json();
-          console.error("[Service] Submission Error Data:", errorData);
-          throw new Error(errorData.error || 'Submission failed due to a server error.');
+        const errorText = await response.text();
+        console.error("[Service] Submission Error Response:", errorText);
+        throw new Error(errorText || `Submission failed with status: ${response.status}`);
       }
 
-      await response.json();
+      const result = await response.json();
       console.log('[aiService] Application submitted successfully.');
-      return { success: true };
+      return result;
 
     } catch (error) {
       console.error("[aiService] Application submission error:", error);

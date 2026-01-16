@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Zap } from 'lucide-react';
 
 interface TickerItem {
@@ -25,16 +25,24 @@ const generateTickerData = (): TickerItem[] => {
 export const LiveTicker = () => {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     setItems(generateTickerData());
+    // Set isMounted to false when the component unmounts
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {
     if (items.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex(prevIndex => (prevIndex + 1) % items.length);
+      // Only update state if the component is still mounted
+      if (isMounted.current) {
+        setCurrentIndex(prevIndex => (prevIndex + 1) % items.length);
+      }
     }, 3000);
 
     return () => clearInterval(interval);
@@ -57,7 +65,6 @@ export const LiveTicker = () => {
                         transform: `translateY(${(index - currentIndex) * 100}%)`,
                         opacity: index === currentIndex ? 1 : 0
                     }}
-                    // 添加 translate="no"
                     translate="no"
                 >
                     {item.text}
