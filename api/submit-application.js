@@ -1,17 +1,14 @@
-
-// api/submit-application.js
 import { Client } from '@hubspot/api-client';
 import formidable from 'formidable';
-import fs from 'fs';
 
-// Disable Vercel's default body parser to handle multipart/form-data
+// 禁用 Vercel 的默认 body 解析器
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// Promisified form parser
+// 表单解析辅助函数
 const parseForm = (req) => {
   return new Promise((resolve, reject) => {
     const form = formidable({ multiples: true });
@@ -23,11 +20,12 @@ const parseForm = (req) => {
 };
 
 export default async function handler(req, res) {
-  // Set CORS headers
+  // 1. 设置跨域头 (CORS)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  // 处理预检请求
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -37,83 +35,69 @@ export default async function handler(req, res) {
   }
 
   if (!process.env.HUBSPOT_ACCESS_TOKEN) {
-    console.error("HubSpot access token is not set.");
     return res.status(500).json({ error: 'Server configuration error.' });
   }
 
   try {
-    console.log("[API] Parsing form data...");
     const { fields, files } = await parseForm(req);
-    console.log("[API] Form data parsed successfully. Fields:", Object.keys(fields));
-    console.log("[API] Received files:", Object.keys(files));
-
     const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN });
 
-    // 1. Create the Deal in HubSpot with text fields
-    console.log(`[API] Creating deal for: ${fields.companyName}`);
+    // --- 核心修改：跳过文件上传，只处理文本 ---
+    
+    // 1. 整理证书信息
+    const certificates = Array.isArray(fields['mainCertificates[]']) 
+      ? fields['mainCertificates[]'].join(', ') 
+      : (fields.mainCertificates || '无');
+
+    // 2. 检查是否有文件（仅做文本提示，不上传）
+    const fileCount = Object.keys(files).length;
+    let fileNote = "";
+    if (fileCount > 0) {
+        // 提示语：告诉管理员用户其实提交了图片，但因为权限没存进来，需要手动联系
+        fileNote = `
+【⚠️ 附件提示】
+用户提交了 ${fileCount} 个文件（营业执照/工厂实拍）。
+由于当前HubSpot账号无文件API权限，图片未自动保存。请根据联系方式(电话/微信)找客户获取。`;
+    }
+
+    // 3. 将所有信息打包进 "Description" 字段
+    // 这样就不需要创建自定义字段，也不需要 Note 权限
+    const combinedDescription = `
+【工厂基本信息】
+工厂名称: ${fields.companyName}
+成立年份: ${fields.establishedYear}
+年营收: ${fields.annualRevenue}
+联系人: ${fields.contactPerson} (${fields.position})
+联系电话: ${fields.contactPhone}
+
+【产品实力】
+主营类目: ${fields.mainProductCategory}
+产品关键词: ${fields.productName}
+核心证书: ${certificates}
+
+【核心优势描述】
+${fields.productDetails}
+${fileNote}
+    `.trim();
+
+    // 4. 创建交易
+    // 只需要 crm.objects.deals.write 这一个权限！
     const dealProperties = {
-      "dealname": `${fields.companyName || 'New Factory'} - Sourcing Application`,
+      "dealname": `${fields.companyName || 'New Factory'} - 入驻申请`,
       "pipeline": "default",
-      "dealstage": "appointmentscheduled", // Initial stage
-      "factory_name__c": fields.companyName,
-      "product_keywords__c": fields.productName,
-      "contact_person__c": fields.contactPerson,
-      "contact_phone__c": fields.contactPhone,
-      "core_advantages__c": fields.productDetails,
-      "established_year__c": fields.establishedYear,
-      "annual_revenue__c": fields.annualRevenue,
-      "main_product_category__c": fields.mainProductCategory,
-      "position__c": fields.position,
-      "main_certificates__c": Array.isArray(fields['mainCertificates[]']) ? fields['mainCertificates[]'].join(';') : (fields.mainCertificates || ''),
+      "dealstage": "appointmentscheduled", 
+      "description": combinedDescription 
     };
 
+    console.log(`[API] 正在创建纯文本交易: ${fields.companyName}`);
     const dealResponse = await hubspotClient.crm.deals.basicApi.create({ properties: dealProperties });
-    console.log(`[API] Deal created successfully. Deal ID: ${dealResponse.id}`);
-
-    // 2. Upload files and attach them as notes to the deal
-    const fileUploadPromises = Object.entries(files).map(async ([formField, fileData]) => {
-      const filesToUpload = Array.isArray(fileData) ? fileData : [fileData];
-      for (const file of filesToUpload) {
-        console.log(`[API] Uploading file: ${file.originalFilename}`);
-        
-        const fileUploadResponse = await hubspotClient.files.filesApi.upload({
-          file: fs.createReadStream(file.filepath),
-          fileName: file.originalFilename,
-          folderPath: 'factory_applications', 
-          options: JSON.stringify({ access: 'PRIVATE' })
-        });
-        
-        console.log(`[API] File uploaded: ${fileUploadResponse.id}. Attaching to deal.`);
-        
-        // Create a note with the file link and associate it with the deal
-        await hubspotClient.crm.objects.notes.basicApi.create({
-          properties: {
-            "hs_timestamp": new Date().toISOString(),
-            "hs_note_body": `User submitted file: ${file.originalFilename} for field ${formField}.<br/>Access it here: <a href="${fileUploadResponse.url}">View File</a>`,
-            "hubspot_owner_id": "", // Optional: assign to a specific owner
-          },
-          associations: [{
-            to: { id: dealResponse.id },
-            types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 202 }] // Deal to Note association
-          }]
-        });
-      }
-    });
-
-    await Promise.all(fileUploadPromises);
-    console.log("[API] All files processed and attached to deal.");
-
+    
+    console.log(`[API] 成功! Deal ID: ${dealResponse.id}`);
     return res.status(200).json({ success: true, crmId: dealResponse.id });
 
   } catch (e) {
-    console.error("--- HubSpot API Error ---");
-    if(e.body) {
-      console.error("Status:", e.body.status);
-      console.error("Message:", e.body.message);
-      console.error("Details:", e.body.errors);
-    } else {
-      console.error(e);
-    }
+    console.error("--- HubSpot API Error ---", e);
+    // 返回通用错误
     return res.status(500).json({ error: 'Failed to process application.' });
   }
 }

@@ -50,7 +50,7 @@ const aiService = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
+          model: '[vertex]gemini-3-pro-preview',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
@@ -117,14 +117,13 @@ const aiService = {
     try {
       const response = await fetch('/api/submit-application', {
         method: 'POST',
-        // Let the browser set the Content-Type header for FormData
         body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("[Service] Submission Error Data:", errorData);
-        throw new Error(errorData.error || 'Submission failed due to a server error.');
+          const errorData = await response.json();
+          console.error("[Service] Submission Error Data:", errorData);
+          throw new Error(errorData.error || 'Submission failed due to a server error.');
       }
 
       await response.json();
