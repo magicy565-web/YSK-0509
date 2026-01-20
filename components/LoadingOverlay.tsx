@@ -26,7 +26,9 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isLoading, messa
         <div className="flex justify-center mb-8">
           <div className="relative">
             <div className="absolute inset-0 bg-emerald-500/30 rounded-full animate-ping blur-md"></div>
-            <div className="relative bg-slate-800 p-6 rounded-full border border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+            <div className="relative bg-slate-800 p-6 rounded-full border border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.3)] flex flex-col items-center justify-center">
+              {/* --- 新增：品牌 Logo --- */}
+              <img src="/logo.png" className="h-8 w-auto mb-4 object-contain opacity-90" alt="Logo" />
               <Loader2 className="w-12 h-12 text-emerald-400 animate-spin" />
             </div>
           </div>

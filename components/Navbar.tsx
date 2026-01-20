@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Briefcase, CheckCircle, Share2 } from 'lucide-react';
+import { Briefcase, CheckCircle, Share2, Award } from 'lucide-react';
 import { AppState } from '../types';
 import { SharePosterModal } from './SharePosterModal';
 
@@ -37,11 +37,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentState }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-             <div className="bg-emerald-500 p-1.5 rounded-lg">
-              <Briefcase className="h-6 w-6 text-slate-900" />
-            </div>
-            <span className="font-bold text-xl tracking-tight">全球外贸·智造领航员</span>
+          <div className="flex items-center">
+            <img 
+              src="/logo.png" 
+              alt="鸿亿鸿" 
+              className="h-10 w-auto object-contain" // 高度设为 40px (h-10)，保持比例
+            />
           </div>
 
           <div className="flex items-center gap-4">
